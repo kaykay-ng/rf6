@@ -41,3 +41,11 @@ app-example
 # generated native folders
 /ios
 /android
+
+# Local Netlify folder
+.netlify
+
+# Claude / AI tooling
+.claude/
+.agents/
+skills-lock.json
