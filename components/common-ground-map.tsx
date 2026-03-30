@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useMemo, useEffect } from 'react';
 import { useWindowDimensions, Platform, View } from 'react-native';
 import Svg, { Path, Polyline, Rect as SvgRect, Text as SvgText, G } from 'react-native-svg';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -51,13 +51,34 @@ type Props = {
 };
 
 function clamp(v: number, lo: number, hi: number) { 'worklet'; return Math.min(Math.max(v, lo), hi); }
-function clampTx(tx: number, sc: number, w: number) { 'worklet'; return clamp(tx, -(w*(sc-1))/2, (w*(sc-1))/2); }
-function clampTy(ty: number, sc: number, h: number) { 'worklet'; return clamp(ty, -(h*(sc-1))/2, (h*(sc-1))/2); }
+function clampTx(tx: number, sc: number, w: number, ox: number) { 'worklet'; return clamp(tx, -(ox + w*(sc-1)/2), ox + w*(sc-1)/2); }
+function clampTy(ty: number, sc: number, h: number, oy: number) { 'worklet'; return clamp(ty, -(oy + h*(sc-1)/2), oy + h*(sc-1)/2); }
 
 export function CommonGroundMap({ camps, zones, activeCampAddresses, onSelectCamp, onDismiss, onZoneChange }: Props) {
   const { width } = useWindowDimensions();
-  const baseScale  = width / VIEW_WIDTH;
-  const svgHeight  = VIEW_HEIGHT * baseScale;
+
+  // On mobile, measure the actual container height and scale the map to fill it.
+  // On web, keep width-based scaling (desktop experience is already good).
+  const [containerHeight, setContainerHeight] = useState(() => VIEW_HEIGHT * (width / VIEW_WIDTH));
+
+  const baseScale = useMemo(() => {
+    const ws = width / VIEW_WIDTH;
+    if (Platform.OS === 'web') return ws;
+    return Math.max(ws, containerHeight / VIEW_HEIGHT);
+  }, [width, containerHeight]);
+
+  const svgW = VIEW_WIDTH  * baseScale;
+  const svgH = VIEW_HEIGHT * baseScale;
+
+  // How much the scaled SVG overflows the container on each axis (at scale=1).
+  // Allows panning to see the overflowing edges even before the user zooms in.
+  const overflowX = useSharedValue(0);
+  const overflowY = useSharedValue(0);
+
+  useEffect(() => {
+    overflowX.value = Math.max(0, (svgW - width) / 2);
+    overflowY.value = Math.max(0, (svgH - containerHeight) / 2);
+  }, [svgW, svgH, width, containerHeight]);
 
   const [hoveredZoneId, setHoveredZoneId] = useState<string | null>(null);
   const [overCamp, setOverCamp] = useState(false);
@@ -114,7 +135,7 @@ export function CommonGroundMap({ camps, zones, activeCampAddresses, onSelectCam
 
   // Center-origin: screen_x = tx + cx*(1-sc) + sc*x  →  x = (screen_x - tx + cx*(sc-1)) / sc
   const cx = width / 2;
-  const cy = svgHeight / 2;
+  const cy = containerHeight / 2;
   const screenToSvg = (screenX: number, screenY: number, tx: number, ty: number, sc: number) => ({
     svgX: (screenX - tx + cx * (sc - 1)) / (baseScale * sc),
     svgY: (screenY - ty + cy * (sc - 1)) / (baseScale * sc),
@@ -144,8 +165,8 @@ export function CommonGroundMap({ camps, zones, activeCampAddresses, onSelectCam
     const rect     = e.currentTarget.getBoundingClientRect();
     const fx = e.clientX - rect.left - cx, fy = e.clientY - rect.top - cy;
     const ratio = newScale / scale.value;
-    translateX.value = clampTx(fx + (translateX.value - fx) * ratio, newScale, width);
-    translateY.value = clampTy(fy + (translateY.value - fy) * ratio, newScale, svgHeight);
+    translateX.value = clampTx(fx + (translateX.value - fx) * ratio, newScale, width, 0);
+    translateY.value = clampTy(fy + (translateY.value - fy) * ratio, newScale, svgH, 0);
     scale.value = newScale; savedScale.value = newScale;
     savedX.value = translateX.value; savedY.value = translateY.value;
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -180,8 +201,8 @@ export function CommonGroundMap({ camps, zones, activeCampAddresses, onSelectCam
     .minPointers(1).maxPointers(1)
     .onStart(() => { savedX.value = translateX.value; savedY.value = translateY.value; })
     .onUpdate((e) => {
-      translateX.value = clampTx(savedX.value + e.translationX, scale.value, width);
-      translateY.value = clampTy(savedY.value + e.translationY, scale.value, svgHeight);
+      translateX.value = clampTx(savedX.value + e.translationX, scale.value, width, overflowX.value);
+      translateY.value = clampTy(savedY.value + e.translationY, scale.value, containerHeight, overflowY.value);
     })
     .onEnd((e) => {
       savedX.value = translateX.value;
@@ -202,9 +223,9 @@ export function CommonGroundMap({ camps, zones, activeCampAddresses, onSelectCam
       const ns = clamp(savedScale.value * (1 + (e.scale - 1) * PINCH_DAMPEN), MIN_SCALE, MAX_SCALE);
       scale.value = ns;
       const r = ns / savedScale.value;
-      const pfx = pinchFX.value - width / 2, pfy = pinchFY.value - svgHeight / 2;
-      translateX.value = clampTx(pfx + (pinchTx.value - pfx) * r, ns, width);
-      translateY.value = clampTy(pfy + (pinchTy.value - pfy) * r, ns, svgHeight);
+      const pfx = pinchFX.value - width / 2, pfy = pinchFY.value - containerHeight / 2;
+      translateX.value = clampTx(pfx + (pinchTx.value - pfx) * r, ns, width, overflowX.value);
+      translateY.value = clampTy(pfy + (pinchTy.value - pfy) * r, ns, containerHeight, overflowY.value);
     })
     .onEnd(() => { savedScale.value = scale.value; savedX.value = translateX.value; savedY.value = translateY.value; });
 
@@ -218,13 +239,22 @@ export function CommonGroundMap({ camps, zones, activeCampAddresses, onSelectCam
   return (
     <GestureDetector gesture={gesture}>
       <View
-        style={[{ width, height: svgHeight }, Platform.OS === 'web' ? ({ touchAction: 'none', overflow: 'hidden', cursor: overCamp ? 'pointer' : 'default' } as any) : null]}
+        style={[
+          Platform.OS === 'web'
+            ? { width, height: svgH }
+            : { width, flex: 1 },
+          Platform.OS === 'web' ? ({ touchAction: 'none', overflow: 'hidden', cursor: overCamp ? 'pointer' : 'default' } as any) : null,
+        ]}
+        onLayout={Platform.OS !== 'web' ? (e) => {
+          const h = e.nativeEvent.layout.height;
+          setContainerHeight(h);
+        } : undefined}
         {...(Platform.OS === 'web' ? { onWheel: handleWheel, onClick: handleClick, onMouseMove: handleMouseMove } : {})}
       >
       <Animated.View
-        style={[{ width, height: svgHeight }, animStyle]}
+        style={[{ width: svgW, height: svgH }, animStyle]}
       >
-        <Svg width={width} height={svgHeight} viewBox={`0 0 ${VIEW_WIDTH} ${VIEW_HEIGHT}`}>
+        <Svg width={svgW} height={svgH} viewBox={`0 0 ${VIEW_WIDTH} ${VIEW_HEIGHT}`}>
 
           {/* Base layer */}
           <SvgRect width={VIEW_WIDTH} height={VIEW_HEIGHT} fill={Colors.background} />
