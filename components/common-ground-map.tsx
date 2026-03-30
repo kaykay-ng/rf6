@@ -72,12 +72,15 @@ export function CommonGroundMap({ camps, zones, activeCampAddresses, onSelectCam
 
   // How much the scaled SVG overflows the container on each axis (at scale=1).
   // Allows panning to see the overflowing edges even before the user zooms in.
-  const overflowX = useSharedValue(0);
-  const overflowY = useSharedValue(0);
+  const overflowX    = useSharedValue(0);
+  const overflowY    = useSharedValue(0);
+  // Shared so pinch/pan worklets always read the live value after onLayout.
+  const shContainerH = useSharedValue(VIEW_HEIGHT * (width / VIEW_WIDTH));
 
   useEffect(() => {
-    overflowX.value = Math.max(0, (svgW - width) / 2);
-    overflowY.value = Math.max(0, (svgH - containerHeight) / 2);
+    overflowX.value    = Math.max(0, (svgW - width) / 2);
+    overflowY.value    = Math.max(0, (svgH - containerHeight) / 2);
+    shContainerH.value = containerHeight;
   }, [svgW, svgH, width, containerHeight]);
 
   const [hoveredZoneId, setHoveredZoneId] = useState<string | null>(null);
@@ -142,20 +145,18 @@ export function CommonGroundMap({ camps, zones, activeCampAddresses, onSelectCam
   });
 
   // ── Tap handler (native + web) ────────────────────────────────────────────
-  const handleTap = useCallback(
-    (screenX: number, screenY: number, tx: number, ty: number, sc: number) => {
-      const { svgX, svgY } = screenToSvg(screenX, screenY, tx, ty, sc);
-      const zone = findZoneAt(svgX, svgY);
-      if (!zone) { onZoneChange?.(null); onDismiss(); return; }
-      onZoneChange?.(zone.id);
-      const slotAddr = findSlotAt(svgX, svgY);
-      const camp = slotAddr ? campsByAddress.get(slotAddr) : undefined;
-      if (camp) onSelectCamp(camp);
-      else onDismiss();
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [findZoneAt, findSlotAt, campsByAddress, onSelectCamp, onDismiss, onZoneChange],
-  );
+  // Not memoized — must capture the current baseScale/cy from screenToSvg on
+  // every render so coordinate mapping stays correct after onLayout updates them.
+  function handleTap(screenX: number, screenY: number, tx: number, ty: number, sc: number) {
+    const { svgX, svgY } = screenToSvg(screenX, screenY, tx, ty, sc);
+    const zone = findZoneAt(svgX, svgY);
+    if (!zone) { onZoneChange?.(null); onDismiss(); return; }
+    onZoneChange?.(zone.id);
+    const slotAddr = findSlotAt(svgX, svgY);
+    const camp = slotAddr ? campsByAddress.get(slotAddr) : undefined;
+    if (camp) onSelectCamp(camp);
+    else onDismiss();
+  }
 
   // ── Web handlers ──────────────────────────────────────────────────────────
   const handleWheel = useCallback((e: any) => {
@@ -202,7 +203,7 @@ export function CommonGroundMap({ camps, zones, activeCampAddresses, onSelectCam
     .onStart(() => { savedX.value = translateX.value; savedY.value = translateY.value; })
     .onUpdate((e) => {
       translateX.value = clampTx(savedX.value + e.translationX, scale.value, width, overflowX.value);
-      translateY.value = clampTy(savedY.value + e.translationY, scale.value, containerHeight, overflowY.value);
+      translateY.value = clampTy(savedY.value + e.translationY, scale.value, shContainerH.value, overflowY.value);
     })
     .onEnd((e) => {
       savedX.value = translateX.value;
@@ -223,9 +224,9 @@ export function CommonGroundMap({ camps, zones, activeCampAddresses, onSelectCam
       const ns = clamp(savedScale.value * (1 + (e.scale - 1) * PINCH_DAMPEN), MIN_SCALE, MAX_SCALE);
       scale.value = ns;
       const r = ns / savedScale.value;
-      const pfx = pinchFX.value - width / 2, pfy = pinchFY.value - containerHeight / 2;
+      const pfx = pinchFX.value - width / 2, pfy = pinchFY.value - shContainerH.value / 2;
       translateX.value = clampTx(pfx + (pinchTx.value - pfx) * r, ns, width, overflowX.value);
-      translateY.value = clampTy(pfy + (pinchTy.value - pfy) * r, ns, containerHeight, overflowY.value);
+      translateY.value = clampTy(pfy + (pinchTy.value - pfy) * r, ns, shContainerH.value, overflowY.value);
     })
     .onEnd(() => { savedScale.value = scale.value; savedX.value = translateX.value; savedY.value = translateY.value; });
 
@@ -247,6 +248,7 @@ export function CommonGroundMap({ camps, zones, activeCampAddresses, onSelectCam
         ]}
         onLayout={Platform.OS !== 'web' ? (e) => {
           const h = e.nativeEvent.layout.height;
+          shContainerH.value = h;
           setContainerHeight(h);
         } : undefined}
         {...(Platform.OS === 'web' ? { onWheel: handleWheel, onClick: handleClick, onMouseMove: handleMouseMove } : {})}
