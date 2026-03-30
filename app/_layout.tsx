@@ -5,6 +5,7 @@ import { useFonts, Oswald_400Regular, Oswald_700Bold } from '@expo-google-fonts/
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Colors } from '@/constants/theme';
+import { SessionProvider } from '@/context/session';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -20,6 +21,7 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
     <SafeAreaProvider>
+    <SessionProvider>
     <Stack
       screenOptions={{
         headerStyle: { backgroundColor: Colors.background },
@@ -37,6 +39,7 @@ export default function RootLayout() {
       <Stack.Screen name="login"   options={{ title: 'LOG IN', headerBackTitle: '' }} />
       <Stack.Screen name="onboarding" options={{ headerShown: false }} />
     </Stack>
+    </SessionProvider>
     </SafeAreaProvider>
     </GestureHandlerRootView>
   );

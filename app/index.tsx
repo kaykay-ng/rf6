@@ -1,33 +1,47 @@
-import { useState } from 'react';
-import { View, StyleSheet, Platform, Pressable } from 'react-native';
+import { useState, useEffect, useMemo } from 'react';
+import { View, StyleSheet, Platform, Pressable, Alert } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   useSharedValue, useAnimatedStyle, withSpring, withTiming,
 } from 'react-native-reanimated';
 import { CommonGroundMap, type Camp } from '@/components/common-ground-map';
+import { CampSheet, type CampEvent } from '@/components/camp-sheet';
+import { MOCK_EVENTS, hasActiveEvent } from '@/data/mock-events';
 import { ZONES } from '@/data/grid';
 import { Colors } from '@/constants/theme';
 import { Text } from '@/components/ui/text';
+import { supabase } from '@/lib/supabase';
+import { useSession } from '@/context/session';
 
-// Mock camps — address = 'C[zone]-[slot 1–10]'
-const MOCK_CAMPS: Camp[] = [
-  { id: '1', name: 'Camp Chaos',       address: 'C5-3',  vibes: ['Late night', 'High energy', 'Chaotic good'],          bio: 'We sleep when the festival ends. Until then, all are welcome.' },
-  { id: '2', name: 'Morning Dew',      address: 'C18-1', vibes: ['Early risers', 'Morning yoga', 'Calm vibes'],          bio: 'Sunrise sessions and strong coffee. Newcomers welcome.' },
-  { id: '3', name: 'Drum Circle',      address: 'C36-7', vibes: ['Acoustic jams', 'High energy', 'Dancing'],             bio: 'Bring an instrument. Or just your hands.' },
-  { id: '4', name: 'The Kitchen',      address: 'C58-2', vibes: ['Cooking & food', 'Chill & slow', 'Newcomers welcome'], bio: 'We cook for ourselves and whoever shows up.' },
-  { id: '5', name: 'Glitter Camp',     address: 'C80-5', vibes: ['Creative & crafts', 'Queer-friendly', 'Dancing'],      bio: 'Art, sparkle, and late-night fire.' },
-  { id: '6', name: 'The Philosophers', address: 'C93-9', vibes: ['Chill & slow', 'Calm vibes', 'Early risers'],          bio: 'Big questions, cold coffee, slow mornings.' },
-];
-
-const SHEET_HIDDEN  = 300;
+const SHEET_HIDDEN  = 540;
+const SHEET_HEIGHT  = 520;
 const DRAWER_WIDTH  = 280;
 
 export default function MapScreen() {
   const insets = useSafeAreaInsets();
+  const { session, logout } = useSession();
+  const [camps, setCamps]               = useState<Camp[]>([]);
   const [selectedCamp, setSelectedCamp] = useState<Camp | null>(null);
+  const [campEvents, setCampEvents]     = useState<CampEvent[] | null>(null);
   const [activeZone, setActiveZone]     = useState<string | null>(null);
   const [drawerOpen, setDrawerOpen]     = useState(false);
+
+  useEffect(() => {
+    supabase
+      .from('camps')
+      .select('id, name, address, vibe_tags, bio')
+      .then(({ data }) => {
+        if (!data) return;
+        setCamps(data.map(r => ({
+          id:      r.id,
+          name:    r.name,
+          address: r.address,
+          vibes:   r.vibe_tags,
+          bio:     r.bio,
+        })));
+      });
+  }, []);
 
   // ── Bottom sheet ──────────────────────────────────────────────────────────
   const sheetOffset = useSharedValue(SHEET_HIDDEN);
@@ -35,11 +49,51 @@ export default function MapScreen() {
     transform: [{ translateY: withSpring(sheetOffset.value, { damping: 48, stiffness: 320 }) }],
   }));
 
+  // TODO: replace with real Supabase query once events table exists
+  const activeCampAddresses = useMemo(() => {
+    if (!hasActiveEvent(MOCK_EVENTS)) return new Set<string>();
+    return new Set(camps.map(c => c.address));
+  }, [camps]);
+
   function handleSelectCamp(camp: Camp) {
-    setSelectedCamp(camp); setActiveZone(null); sheetOffset.value = 0;
+    setSelectedCamp(camp);
+    setActiveZone(null);
+    setCampEvents(MOCK_EVENTS); // TODO: fetch from Supabase
+    sheetOffset.value = 0;
   }
   function dismissSheet() {
-    sheetOffset.value = SHEET_HIDDEN; setSelectedCamp(null);
+    sheetOffset.value = SHEET_HIDDEN;
+    // Delay clearing content until slide-down animation finishes
+    setTimeout(() => { setSelectedCamp(null); setCampEvents(null); }, 300);
+  }
+
+  function confirmDeleteCamp() {
+    if (Platform.OS === 'web') {
+      if (window.confirm('Delete camp\n\nThis will permanently remove your camp from the map. This cannot be undone.')) {
+        handleDeleteCamp();
+      }
+      return;
+    }
+    Alert.alert(
+      'Delete camp',
+      'This will permanently remove your camp from the map. This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', style: 'destructive', onPress: handleDeleteCamp },
+      ],
+    );
+  }
+
+  async function handleDeleteCamp() {
+    if (!session) return;
+    const { error } = await supabase.from('camps').delete().eq('id', session.campId);
+    if (error) {
+      Alert.alert('Error', 'Could not delete your camp. Please try again.');
+      return;
+    }
+    setCamps(prev => prev.filter(c => c.id !== session.campId));
+    dismissSheet();
+    setTimeout(logout, 320); // wait for sheet to slide down before clearing session
   }
   function handleZoneChange(zoneId: string | null) {
     if (!selectedCamp) setActiveZone(zoneId);
@@ -87,8 +141,9 @@ export default function MapScreen() {
 
       {/* ── Map ── */}
       <CommonGroundMap
-        camps={MOCK_CAMPS}
+        camps={camps}
         zones={ZONES}
+        activeCampAddresses={activeCampAddresses}
         onSelectCamp={handleSelectCamp}
         onDismiss={dismissSheet}
         onZoneChange={handleZoneChange}
@@ -117,21 +172,14 @@ export default function MapScreen() {
       </View>
 
       {/* ── Camp profile bottom sheet ── */}
-      <Animated.View style={[styles.sheet, { paddingBottom: insets.bottom + 16 }, sheetStyle]}>
-        <View style={styles.sheetHandle} />
+      <Animated.View style={[styles.sheetWrapper, sheetStyle]}>
         {selectedCamp && (
-          <>
-            <Text variant="heading" style={styles.campName}>{selectedCamp.name}</Text>
-            <Text variant="caption" style={styles.campAddress}>{selectedCamp.address}</Text>
-            <View style={styles.vibes}>
-              {selectedCamp.vibes.map((v) => (
-                <View key={v} style={styles.vibe}>
-                  <Text variant="caption" style={styles.vibeLabel}>{v}</Text>
-                </View>
-              ))}
-            </View>
-            <Text variant="body" style={styles.bio}>{selectedCamp.bio}</Text>
-          </>
+          <CampSheet
+            camp={selectedCamp}
+            events={campEvents}
+            paddingBottom={insets.bottom + 16}
+            onDismiss={dismissSheet}
+          />
         )}
       </Animated.View>
 
@@ -147,20 +195,34 @@ export default function MapScreen() {
         <Text style={styles.drawerBrand}>CLASH{'\n'}OF CAMPS</Text>
         <View style={styles.drawerDivider} />
 
-        <DrawerItem label="Register your camp" onPress={() => navigate('/welcome')} />
-        <DrawerItem label="Log in"              onPress={() => navigate('/login')}   />
+        {session ? (
+          <>
+            <Text style={styles.drawerCampName}>{session.campName}</Text>
+            <Text style={styles.drawerCampAddress}>{session.address}</Text>
+            <View style={styles.drawerDivider} />
+            <DrawerItem label="Add an event"  onPress={() => navigate('/events/new')} />
+            <View style={styles.drawerDivider} />
+            <DrawerItem label="Log out"        onPress={() => { closeDrawer(); setTimeout(logout, 280); }} />
+            <DrawerItem label="Delete camp"    onPress={() => { closeDrawer(); setTimeout(confirmDeleteCamp, 280); }} destructive />
+          </>
+        ) : (
+          <>
+            <DrawerItem label="Register your camp" onPress={() => navigate('/welcome')} />
+            <DrawerItem label="Log in"              onPress={() => navigate('/login')}   />
+          </>
+        )}
       </Animated.View>
     </View>
   );
 }
 
-function DrawerItem({ label, onPress }: { label: string; onPress: () => void }) {
+function DrawerItem({ label, onPress, destructive }: { label: string; onPress: () => void; destructive?: boolean }) {
   return (
     <Pressable
       style={({ pressed }) => [styles.drawerItem, pressed && styles.drawerItemPressed]}
       onPress={onPress}
     >
-      <Text style={styles.drawerItemText}>{label}</Text>
+      <Text style={[styles.drawerItemText, destructive && styles.drawerItemDestructive]}>{label}</Text>
     </Pressable>
   );
 }
@@ -202,20 +264,10 @@ const styles = StyleSheet.create({
   legendCount:{ color: Colors.textSecondary, letterSpacing: 0.2 },
 
   // ── Bottom sheet ──
-  sheet: {
+  sheetWrapper: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
-    backgroundColor: Colors.white, borderTopLeftRadius: 20, borderTopRightRadius: 20,
-    paddingTop: 12, paddingHorizontal: 24,
-    shadowColor: '#000', shadowOpacity: 0.14, shadowRadius: 20,
-    shadowOffset: { width: 0, height: -4 }, elevation: 16, minHeight: 260,
+    height: SHEET_HEIGHT,
   },
-  sheetHandle:  { width: 32, height: 3, backgroundColor: Colors.accent, borderRadius: 2, alignSelf: 'center', marginBottom: 18 },
-  campName:     { fontSize: 22, marginBottom: 2 },
-  campAddress:  { color: Colors.textSecondary, marginBottom: 14, letterSpacing: 0.5, textTransform: 'uppercase' },
-  vibes:        { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 14 },
-  vibe:         { backgroundColor: Colors.surface, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4, borderWidth: 1, borderColor: Colors.border },
-  vibeLabel:    { fontSize: 12, color: Colors.text },
-  bio:          { color: Colors.textSecondary, lineHeight: 22 },
 
   // ── Drawer ──
   backdrop: {
@@ -240,7 +292,10 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   drawerDivider: { height: 1, backgroundColor: Colors.border, marginBottom: 16 },
+  drawerCampName:    { fontFamily: 'Oswald_700Bold', fontSize: 20, color: Colors.text, marginBottom: 2 },
+  drawerCampAddress: { fontFamily: 'Oswald_400Regular', fontSize: 13, color: Colors.textSecondary, letterSpacing: 0.5, marginBottom: 20 },
   drawerItem:        { paddingVertical: 14 },
   drawerItemPressed: { opacity: 0.5 },
-  drawerItemText:    { fontFamily: 'Oswald_400Regular', fontSize: 18, color: Colors.text, letterSpacing: 0.5 },
+  drawerItemText:        { fontFamily: 'Oswald_400Regular', fontSize: 18, color: Colors.text, letterSpacing: 0.5 },
+  drawerItemDestructive: { color: '#B01020' },
 });

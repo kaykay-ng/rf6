@@ -1,11 +1,38 @@
-import { View, StyleSheet, Pressable } from 'react-native';
+import { useState } from 'react';
+import { View, TextInput, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { Colors } from '@/constants/theme';
+import { supabase } from '@/lib/supabase';
+import { useOnboarding } from '@/context/onboarding';
+import { StepHeader } from '@/components/ui/step-header';
 import { Text } from '@/components/ui/text';
+import { Colors } from '@/constants/theme';
 
 export default function OnboardingNameScreen() {
   const insets = useSafeAreaInsets();
+  const { data, setName } = useOnboarding();
+  const [error, setError]     = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const trimmed = data.name.trim();
+  const canNext = trimmed.length >= 3 && !loading;
+
+  async function handleNext() {
+    setError('');
+    setLoading(true);
+    const { data: rows } = await supabase
+      .from('camps')
+      .select('id')
+      .ilike('name', trimmed)
+      .limit(1);
+    setLoading(false);
+
+    if (rows && rows.length > 0) {
+      setError('That name is already taken — try something else.');
+      return;
+    }
+    router.push('/onboarding/slot');
+  }
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 24 }]}>
@@ -14,41 +41,49 @@ export default function OnboardingNameScreen() {
       <View style={styles.body}>
         <Text variant="heading" style={styles.title}>What's your camp called?</Text>
         <Text variant="body" style={styles.hint}>This is your public identity on the map. Make it memorable.</Text>
-        {/* Input coming in next task */}
+
+        <TextInput
+          style={[styles.input, error ? styles.inputError : null]}
+          value={data.name}
+          onChangeText={(t) => { setName(t); setError(''); }}
+          placeholder="e.g. Camp Chaos"
+          placeholderTextColor={Colors.border}
+          autoFocus
+          maxLength={40}
+          returnKeyType="done"
+          onSubmitEditing={canNext ? handleNext : undefined}
+        />
+        {error ? <Text style={styles.error}>{error}</Text> : null}
       </View>
 
-      <Pressable style={styles.nextBtn} onPress={() => router.push('/onboarding/slot')}>
-        <Text style={styles.nextBtnText}>NEXT</Text>
+      <Pressable
+        style={[styles.nextBtn, !canNext && styles.nextBtnDisabled]}
+        onPress={handleNext}
+        disabled={!canNext}
+      >
+        {loading
+          ? <ActivityIndicator color={Colors.white} />
+          : <Text style={styles.nextBtnText}>NEXT</Text>
+        }
       </Pressable>
-    </View>
-  );
-}
-
-function StepHeader({ step, total, onBack }: { step: number; total: number; onBack: () => void }) {
-  return (
-    <View style={styles.stepHeader}>
-      <Pressable onPress={onBack} hitSlop={12}>
-        <Text style={styles.backArrow}>←</Text>
-      </Pressable>
-      <View style={styles.stepDots}>
-        {Array.from({ length: total }, (_, i) => (
-          <View key={i} style={[styles.dot, i + 1 === step && styles.dotActive]} />
-        ))}
-      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container:  { flex: 1, backgroundColor: Colors.background, paddingHorizontal: 28 },
-  stepHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 48 },
-  backArrow:  { fontSize: 22, color: Colors.text },
-  stepDots:   { flexDirection: 'row', gap: 6 },
-  dot:        { width: 6, height: 6, borderRadius: 3, backgroundColor: Colors.border },
-  dotActive:  { backgroundColor: Colors.accent, width: 18 },
-  body:       { flex: 1 },
-  title:      { fontSize: 28, marginBottom: 10 },
-  hint:       { color: Colors.textSecondary, lineHeight: 22 },
-  nextBtn:    { backgroundColor: Colors.accent, borderRadius: 10, paddingVertical: 16, alignItems: 'center' },
-  nextBtnText:{ fontFamily: 'Oswald_700Bold', fontSize: 16, letterSpacing: 1.5, color: Colors.white },
+  container:      { flex: 1, backgroundColor: Colors.background, paddingHorizontal: 28 },
+  body:           { flex: 1 },
+  title:          { fontSize: 28, marginBottom: 10 },
+  hint:           { color: Colors.textSecondary, lineHeight: 22, marginBottom: 28 },
+  input: {
+    borderWidth: 1.5, borderColor: Colors.border, borderRadius: 10,
+    paddingHorizontal: 16, paddingVertical: 14,
+    fontSize: 18, fontFamily: 'ui-sans-serif, system-ui, -apple-system, sans-serif',
+    color: Colors.text, backgroundColor: Colors.white,
+  },
+  inputError:     { borderColor: Colors.accent },
+  error:          { marginTop: 8, fontSize: 13, color: Colors.accent },
+  nextBtn:        { backgroundColor: Colors.accent, borderRadius: 10, paddingVertical: 16, alignItems: 'center' },
+  nextBtnDisabled:{ opacity: 0.4 },
+  nextBtnText:    { fontFamily: 'Oswald_700Bold', fontSize: 16, letterSpacing: 1.5, color: Colors.white },
 });

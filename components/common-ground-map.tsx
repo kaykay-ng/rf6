@@ -44,6 +44,7 @@ export type Camp = {
 type Props = {
   camps: Camp[];
   zones: CampZone[];
+  activeCampAddresses?: Set<string>;
   onSelectCamp: (camp: Camp) => void;
   onDismiss: () => void;
   onZoneChange?: (zoneId: string | null) => void;
@@ -53,7 +54,7 @@ function clamp(v: number, lo: number, hi: number) { 'worklet'; return Math.min(M
 function clampTx(tx: number, sc: number, w: number) { 'worklet'; return clamp(tx, -(w*(sc-1))/2, (w*(sc-1))/2); }
 function clampTy(ty: number, sc: number, h: number) { 'worklet'; return clamp(ty, -(h*(sc-1))/2, (h*(sc-1))/2); }
 
-export function CommonGroundMap({ camps, zones, onSelectCamp, onDismiss, onZoneChange }: Props) {
+export function CommonGroundMap({ camps, zones, activeCampAddresses, onSelectCamp, onDismiss, onZoneChange }: Props) {
   const { width } = useWindowDimensions();
   const baseScale  = width / VIEW_WIDTH;
   const svgHeight  = VIEW_HEIGHT * baseScale;
@@ -254,6 +255,9 @@ export function CommonGroundMap({ camps, zones, onSelectCamp, onDismiss, onZoneC
                     const slotNum  = row * CAMP_COLS + col + 1;
                     const slotAddr = `${zone.id}-${slotNum}`;
                     const occupied = campsByAddress.has(slotAddr);
+                    const active   = occupied && (activeCampAddresses?.has(slotAddr) ?? false);
+                    const slotFill = active ? '#E8252A' : occupied ? Colors.white : c.slot;
+                    const slotStroke = active ? '#C01020' : occupied ? Colors.white : c.slotStroke;
                     return (
                       <SvgRect
                         key={slotAddr}
@@ -261,8 +265,8 @@ export function CommonGroundMap({ camps, zones, onSelectCamp, onDismiss, onZoneC
                         y={zone.y + row * CAMP_CS + 0.5}
                         width={CAMP_BS - 1} height={CAMP_BS - 1}
                         rx={1}
-                        fill={occupied ? Colors.white : c.slot}
-                        stroke={occupied ? Colors.white : c.slotStroke}
+                        fill={slotFill}
+                        stroke={slotStroke}
                         strokeWidth={0.4}
                       />
                     );
