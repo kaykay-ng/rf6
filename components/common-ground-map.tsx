@@ -345,8 +345,6 @@ export function CommonGroundMap({ camps, zones, activeCampAddresses, onSelectCam
             );
           })}
 
-          {/* Zone boundary outline */}
-          <Path d={PATHS.zoneOutline} fill="none" stroke="#2d6838" strokeWidth={0.8} />
 
           {/* Zone labels NW / SE */}
           <SvgText x={295} y={90}  fontSize={10} fontWeight="600" fontFamily="Oswald_700Bold, Oswald, ui-sans-serif, system-ui, sans-serif" fill="#1a4a25" textAnchor="middle">Northwest</SvgText>
