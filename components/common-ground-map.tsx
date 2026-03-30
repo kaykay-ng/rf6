@@ -14,7 +14,9 @@ const VIEW_WIDTH   = 680;
 const VIEW_HEIGHT  = 560;
 const MIN_SCALE    = 0.8;
 const MAX_SCALE    = 4;
-const PINCH_DAMPEN = 0.25;
+// Browser DevTools touch simulation reports much larger e.scale deltas than
+// real native touch — use a lower dampen value on web to compensate.
+const PINCH_DAMPEN = Platform.OS === 'web' ? 0.08 : 0.25;
 
 // Visual colours — match HTML prototype
 const COLORS = {
