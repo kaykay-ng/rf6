@@ -96,7 +96,7 @@ export default function OnboardingSlotScreen() {
             <View style={[styles.inputRow, error ? styles.inputError : null]}>
               <Text style={styles.prefix}>C</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { outlineStyle: 'none' } as any]}
                 value={zone}
                 onChangeText={handleZoneChange}
                 placeholder="5"
@@ -117,7 +117,7 @@ export default function OnboardingSlotScreen() {
             <Text style={styles.fieldLabel}>SLOT</Text>
             <TextInput
               ref={slotRef}
-              style={[styles.input, styles.inputStandalone, error ? styles.inputError : null]}
+              style={[styles.input, styles.inputStandalone, error ? styles.inputError : null, { outlineStyle: 'none' } as any]}
               value={slot}
               onChangeText={handleSlotChange}
               placeholder="3"

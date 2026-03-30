@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { View, TextInput, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -6,7 +6,6 @@ import * as Crypto from 'expo-crypto';
 import { supabase } from '@/lib/supabase';
 import { saveSession } from '@/lib/session';
 import { useSession } from '@/context/session';
-import { PinDots } from '@/components/ui/pin-dots';
 import { Text } from '@/components/ui/text';
 import { Colors } from '@/constants/theme';
 
@@ -19,7 +18,6 @@ export default function LoginScreen() {
   const [error, setError]       = useState('');
   const [pinError, setPinError] = useState(false);
 
-  const pinRef   = useRef<TextInput>(null);
   const canLogin = campName.trim().length >= 3 && pin.length === 6 && !loading;
 
   async function handleLogin() {
@@ -69,27 +67,19 @@ export default function LoginScreen() {
           returnKeyType="done"
         />
 
-        <Pressable onPress={() => pinRef.current?.focus()}>
-          <Text style={styles.pinLabel}>6-DIGIT PIN</Text>
-          <PinDots
-            value={pin}
-            error={pinError}
-            onErrorShown={() => setPinError(false)}
-          />
-        </Pressable>
+        <Text style={styles.pinLabel}>6-DIGIT PIN</Text>
+        <TextInput
+          value={pin}
+          onChangeText={(t) => { setPin(t.replace(/[^0-9]/g, '').slice(0, 6)); setError(''); setPinError(false); }}
+          keyboardType="number-pad"
+          maxLength={6}
+          secureTextEntry
+          placeholder="······"
+          placeholderTextColor={Colors.border}
+          style={[styles.pinInput, pinError && styles.pinInputError, { outlineStyle: 'none' } as any]}
+        />
         {error ? <Text style={styles.error}>{error}</Text> : null}
       </View>
-
-      {/* Hidden input — brings up native number-pad when focused */}
-      <TextInput
-        ref={pinRef}
-        value={pin}
-        onChangeText={(t) => { setPin(t.replace(/[^0-9]/g, '').slice(0, 6)); setError(''); }}
-        keyboardType="number-pad"
-        maxLength={6}
-        caretHidden
-        style={styles.hiddenInput}
-      />
 
       <Pressable
         style={[styles.loginBtn, !canLogin && styles.loginBtnDisabled]}
@@ -115,9 +105,15 @@ const styles = StyleSheet.create({
     fontSize: 18, fontFamily: 'ui-sans-serif, system-ui, -apple-system, sans-serif',
     color: Colors.text, backgroundColor: Colors.white,
   },
-  pinLabel:        { fontFamily: 'Oswald_700Bold', fontSize: 11, letterSpacing: 2, color: Colors.textSecondary, marginBottom: 8 },
-  error:           { marginTop: 12, fontSize: 13, color: Colors.accent, textAlign: 'center' },
-  hiddenInput:     { position: 'absolute', opacity: 0, width: 1, height: 1 },
+  pinLabel:      { fontFamily: 'Oswald_700Bold', fontSize: 11, letterSpacing: 2, color: Colors.textSecondary, marginBottom: 8 },
+  pinInput: {
+    borderWidth: 1.5, borderColor: Colors.border, borderRadius: 10,
+    paddingHorizontal: 16, paddingVertical: 18,
+    fontSize: 28, letterSpacing: 10, textAlign: 'center',
+    color: Colors.text, backgroundColor: Colors.white,
+  },
+  pinInputError: { borderColor: Colors.accent },
+  error:         { marginTop: 12, fontSize: 13, color: Colors.accent, textAlign: 'center' },
   loginBtn:        { marginHorizontal: 28, marginTop: 24, backgroundColor: Colors.accent, borderRadius: 10, paddingVertical: 16, alignItems: 'center' },
   loginBtnDisabled:{ opacity: 0.4 },
   loginBtnText:    { fontFamily: 'Oswald_700Bold', fontSize: 16, letterSpacing: 1.5, color: Colors.white },
