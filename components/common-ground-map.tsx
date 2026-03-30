@@ -256,7 +256,7 @@ export function CommonGroundMap({ camps, zones, activeCampAddresses, onSelectCam
         {...(Platform.OS === 'web' ? { onWheel: handleWheel, onClick: handleClick, onMouseMove: handleMouseMove } : {})}
       >
       <Animated.View
-        style={[{ width: svgW, height: svgH }, animStyle]}
+        style={[{ width: svgW, height: svgH, marginLeft: -(svgW - width) / 2 }, animStyle]}
       >
         <Svg width={svgW} height={svgH} viewBox={`0 0 ${VIEW_WIDTH} ${VIEW_HEIGHT}`}>
 
