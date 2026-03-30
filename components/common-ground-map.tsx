@@ -62,27 +62,19 @@ function clampTx(tx: number, sc: number, w: number, ox: number) { 'worklet'; ret
 function clampTy(ty: number, sc: number, h: number, oy: number) { 'worklet'; return clamp(ty, -(oy + h*(sc-1)/2), oy + h*(sc-1)/2); }
 
 export function CommonGroundMap({ camps, zones, activeCampAddresses, onSelectCamp, onDismiss, onZoneChange }: Props) {
-  const { width, height: windowHeight } = useWindowDimensions();
+  const { width } = useWindowDimensions();
 
-  // containerHeight drives baseScale. On web, flex:1 fires onLayout before the
-  // browser finishes computing the flex height (breaks in Firefox). Use windowHeight
-  // directly on web instead — reliable across all browsers. On native, onLayout is
-  // accurate so we start with a placeholder and update once the view is measured.
+  // containerHeight drives baseScale. Start with an estimate; onLayout corrects
+  // it once the container is measured. The +html.tsx shell ensures html/body/root
+  // have explicit heights so Firefox propagates flex:1 correctly, making the
+  // onLayout value reliable across all browsers.
   const [containerHeight, setContainerHeight] = useState(() =>
-    Platform.OS === 'web' ? windowHeight : VIEW_HEIGHT * (width / VIEW_WIDTH)
+    VIEW_HEIGHT * (width / VIEW_WIDTH)
   );
 
   const overflowX    = useSharedValue(0);
   const overflowY    = useSharedValue(0);
   const shContainerH = useSharedValue(containerHeight);
-
-  // On web, stay in sync with window resize / orientation changes.
-  useEffect(() => {
-    if (Platform.OS !== 'web') return;
-    setContainerHeight(windowHeight);
-    shContainerH.value = windowHeight;
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [windowHeight]);
 
   const baseScale = useMemo(() => {
     const ws = width / VIEW_WIDTH;
