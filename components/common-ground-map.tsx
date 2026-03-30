@@ -34,7 +34,6 @@ const COLORS = {
 const PATHS = {
   boundary:  'M581,48 L573,119 L535,427 L414,386 L337,302 L209,263 L204,96 L223,98 L225,31 L424,27 Z',
   campZone:  'M380,324 L416,242 L473,200 L562,198 L572,125 L571,114 L507,74 L472,30 L421,24 L250,27 L223,210 L234,221 Z',
-  zoneOutline: 'M380,324 L416,242 L473,200 L562,198 L572,125 L571,114 L507,74 L472,30 L421,24 L250,27 L223,210 L234,221 Z',
   road1:  '101,25 424,20 589,42 531,540',
   road2:  '20,251 126,269 177,262 332,308 411,392 543,438',
   trail:  'M579,119 C414,117 392,123 318,195 C291,210 264,225 231,230',
@@ -64,10 +63,8 @@ function clampTy(ty: number, sc: number, h: number, oy: number) { 'worklet'; ret
 export function CommonGroundMap({ camps, zones, activeCampAddresses, onSelectCamp, onDismiss, onZoneChange }: Props) {
   const { width } = useWindowDimensions();
 
-  // containerHeight drives baseScale. Start with an estimate; onLayout corrects
-  // it once the container is measured. The +html.tsx shell ensures html/body/root
-  // have explicit heights so Firefox propagates flex:1 correctly, making the
-  // onLayout value reliable across all browsers.
+  // containerHeight drives baseScale. Start with a width-based estimate;
+  // onLayout corrects it once the container is measured.
   const [containerHeight, setContainerHeight] = useState(() =>
     VIEW_HEIGHT * (width / VIEW_WIDTH)
   );
