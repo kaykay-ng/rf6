@@ -138,12 +138,15 @@ export function CommonGroundMap({ camps, zones, activeCampAddresses, onSelectCam
     [findZoneAt],
   );
 
-  // Center-origin: screen_x = tx + cx*(1-sc) + sc*x  →  x = (screen_x - tx + cx*(sc-1)) / sc
+  // Anchor point of the Animated.View in container coords.
+  // With marginLeft: -(svgW-width)/2 the view is centered, so anchor = (width/2, svgH/2).
+  // Correct inverse: svgX = VIEW_WIDTH/2 + (screenX - tx - cx) / (baseScale * sc)
+  // (The old cx*(sc-1) form only holds when svgW === width — not true on mobile.)
   const cx = width / 2;
-  const cy = containerHeight / 2;
+  const cy = svgH / 2;
   const screenToSvg = (screenX: number, screenY: number, tx: number, ty: number, sc: number) => ({
-    svgX: (screenX - tx + cx * (sc - 1)) / (baseScale * sc),
-    svgY: (screenY - ty + cy * (sc - 1)) / (baseScale * sc),
+    svgX: VIEW_WIDTH  / 2 + (screenX - tx - cx) / (baseScale * sc),
+    svgY: VIEW_HEIGHT / 2 + (screenY - ty - cy) / (baseScale * sc),
   });
 
   // ── Tap handler (native + web) ────────────────────────────────────────────
