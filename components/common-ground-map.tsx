@@ -280,6 +280,14 @@ export function CommonGroundMap({ camps, zones, activeCampAddresses, onSelectCam
           <Path d={PATHS.boundary} fill="#d8d8da" />
           <Path d={PATHS.campZone} fill="#4a9458" />
 
+          {/* Roads — drawn before zones so camp boxes render on top */}
+          <Polyline points={PATHS.road1} fill="none" stroke="#fff" strokeWidth={11} strokeLinecap="round" strokeLinejoin="round" />
+          <Polyline points={PATHS.road2} fill="none" stroke="#fff" strokeWidth={11} strokeLinecap="round" strokeLinejoin="round" />
+          <Path     d={PATHS.trail}      fill="none" stroke="#fff" strokeWidth={11} strokeLinecap="round" strokeLinejoin="round" />
+          <Polyline points={PATHS.road1} fill="none" stroke="#ccc" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
+          <Polyline points={PATHS.road2} fill="none" stroke="#ccc" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
+          <Path     d={PATHS.trail}      fill="none" stroke="#ccc" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
+
           {/* ── Zone groups ──────────────────────────────────────────────── */}
           {zones.map((zone) => {
             const c      = COLORS[zone.zoneType];
@@ -339,14 +347,6 @@ export function CommonGroundMap({ camps, zones, activeCampAddresses, onSelectCam
 
           {/* Zone boundary outline */}
           <Path d={PATHS.zoneOutline} fill="none" stroke="#2d6838" strokeWidth={0.8} />
-
-          {/* Roads — drawn on top */}
-          <Polyline points={PATHS.road1} fill="none" stroke="#fff"    strokeWidth={11} strokeLinecap="round" strokeLinejoin="round" />
-          <Polyline points={PATHS.road2} fill="none" stroke="#fff"    strokeWidth={11} strokeLinecap="round" strokeLinejoin="round" />
-          <Path     d={PATHS.trail}      fill="none" stroke="#fff"    strokeWidth={11} strokeLinecap="round" strokeLinejoin="round" />
-          <Polyline points={PATHS.road1} fill="none" stroke="#ccc"    strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
-          <Polyline points={PATHS.road2} fill="none" stroke="#ccc"    strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
-          <Path     d={PATHS.trail}      fill="none" stroke="#ccc"    strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
 
           {/* Zone labels NW / SE */}
           <SvgText x={295} y={90}  fontSize={10} fontWeight="600" fontFamily="Oswald_700Bold, Oswald, ui-sans-serif, system-ui, sans-serif" fill="#1a4a25" textAnchor="middle">Northwest</SvgText>
