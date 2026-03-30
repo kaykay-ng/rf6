@@ -3,8 +3,13 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-const SUPABASE_URL = 'https://fttgbahiijpmuogsjqif.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ0dGdiYWhpaWpwbXVvZ3NqcWlmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2Mjg1ODIsImV4cCI6MjA5MDIwNDU4Mn0.bx172nCWjm8QWzPTEmuWAVzTe-EjkoXfS9ADvBPDoKY';
+const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL;
+const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  console.error('Missing EXPO_PUBLIC_SUPABASE_URL or EXPO_PUBLIC_SUPABASE_ANON_KEY');
+  process.exit(1);
+}
 
 // SHA256("000000") — matches expo-crypto digestStringAsync output
 const PIN_HASH = '91b4d142823f7d20c5f08df69122de43f35f057a988d9619f6d3138485c9a203';
