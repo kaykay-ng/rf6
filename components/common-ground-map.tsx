@@ -1,14 +1,19 @@
-import { useState, useCallback, useRef, useMemo, useEffect } from 'react';
-import { useWindowDimensions, Platform, View } from 'react-native';
-import Svg, { Path, Polyline, Rect as SvgRect, Text as SvgText, G } from 'react-native-svg';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, { useSharedValue, useAnimatedStyle, runOnJS } from 'react-native-reanimated';
 import { Colors } from '@/constants/theme';
 import {
+  CAMP_BS,
+  CAMP_COLS,
+  CAMP_CS,
+  CAMP_ROWS,
   type CampZone,
   parseAddress,
-  ZONE_W, ZONE_H, CAMP_BS, CAMP_CS, CAMP_COLS, CAMP_ROWS, CAMPS_PER_ZONE,
+  ZONE_H,
+  ZONE_W
 } from '@/data/grid';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Platform, useWindowDimensions, View } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, { runOnJS, useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
+import Svg, { G, Path, Polyline, Rect as SvgRect, Text as SvgText } from 'react-native-svg';
 
 const VIEW_WIDTH   = 680;
 const VIEW_HEIGHT  = 560;
@@ -16,7 +21,7 @@ const MIN_SCALE    = 0.8;
 const MAX_SCALE    = 4;
 // Browser DevTools touch simulation reports much larger e.scale deltas than
 // real native touch — use a lower dampen value on web to compensate.
-const PINCH_DAMPEN = Platform.OS === 'web' ? 0.08 : 0.25;
+const PINCH_DAMPEN = Platform.OS === 'web' ? 0.32 : 0.25;
 
 // Visual colours — match HTML prototype
 const COLORS = {
@@ -57,12 +62,27 @@ function clampTx(tx: number, sc: number, w: number, ox: number) { 'worklet'; ret
 function clampTy(ty: number, sc: number, h: number, oy: number) { 'worklet'; return clamp(ty, -(oy + h*(sc-1)/2), oy + h*(sc-1)/2); }
 
 export function CommonGroundMap({ camps, zones, activeCampAddresses, onSelectCamp, onDismiss, onZoneChange }: Props) {
-  const { width } = useWindowDimensions();
+  const { width, height: windowHeight } = useWindowDimensions();
 
-  // Measure the actual container height on all platforms via onLayout.
-  // Use whichever scale fills the container — width-based wins on wide screens
-  // (desktop), height-based wins on tall/narrow screens (mobile web + native).
-  const [containerHeight, setContainerHeight] = useState(() => VIEW_HEIGHT * (width / VIEW_WIDTH));
+  // containerHeight drives baseScale. On web, flex:1 fires onLayout before the
+  // browser finishes computing the flex height (breaks in Firefox). Use windowHeight
+  // directly on web instead — reliable across all browsers. On native, onLayout is
+  // accurate so we start with a placeholder and update once the view is measured.
+  const [containerHeight, setContainerHeight] = useState(() =>
+    Platform.OS === 'web' ? windowHeight : VIEW_HEIGHT * (width / VIEW_WIDTH)
+  );
+
+  const overflowX    = useSharedValue(0);
+  const overflowY    = useSharedValue(0);
+  const shContainerH = useSharedValue(containerHeight);
+
+  // On web, stay in sync with window resize / orientation changes.
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    setContainerHeight(windowHeight);
+    shContainerH.value = windowHeight;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [windowHeight]);
 
   const baseScale = useMemo(() => {
     const ws = width / VIEW_WIDTH;
@@ -72,13 +92,6 @@ export function CommonGroundMap({ camps, zones, activeCampAddresses, onSelectCam
 
   const svgW = VIEW_WIDTH  * baseScale;
   const svgH = VIEW_HEIGHT * baseScale;
-
-  // How much the scaled SVG overflows the container on each axis (at scale=1).
-  // Allows panning to see the overflowing edges even before the user zooms in.
-  const overflowX    = useSharedValue(0);
-  const overflowY    = useSharedValue(0);
-  // Shared so pinch/pan worklets always read the live value after onLayout.
-  const shContainerH = useSharedValue(VIEW_HEIGHT * (width / VIEW_WIDTH));
 
   useEffect(() => {
     overflowX.value    = Math.max(0, (svgW - width) / 2);
