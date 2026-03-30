@@ -59,14 +59,15 @@ function clampTy(ty: number, sc: number, h: number, oy: number) { 'worklet'; ret
 export function CommonGroundMap({ camps, zones, activeCampAddresses, onSelectCamp, onDismiss, onZoneChange }: Props) {
   const { width } = useWindowDimensions();
 
-  // On mobile, measure the actual container height and scale the map to fill it.
-  // On web, keep width-based scaling (desktop experience is already good).
+  // Measure the actual container height on all platforms via onLayout.
+  // Use whichever scale fills the container — width-based wins on wide screens
+  // (desktop), height-based wins on tall/narrow screens (mobile web + native).
   const [containerHeight, setContainerHeight] = useState(() => VIEW_HEIGHT * (width / VIEW_WIDTH));
 
   const baseScale = useMemo(() => {
     const ws = width / VIEW_WIDTH;
-    if (Platform.OS === 'web') return ws;
-    return Math.max(ws, containerHeight / VIEW_HEIGHT);
+    const hs = containerHeight / VIEW_HEIGHT;
+    return Math.max(ws, hs);
   }, [width, containerHeight]);
 
   const svgW = VIEW_WIDTH  * baseScale;
@@ -246,16 +247,14 @@ export function CommonGroundMap({ camps, zones, activeCampAddresses, onSelectCam
     <GestureDetector gesture={gesture}>
       <View
         style={[
-          Platform.OS === 'web'
-            ? { width, height: svgH }
-            : { width, flex: 1 },
+          { width, flex: 1 },
           Platform.OS === 'web' ? ({ touchAction: 'none', overflow: 'hidden', cursor: overCamp ? 'pointer' : 'default' } as any) : null,
         ]}
-        onLayout={Platform.OS !== 'web' ? (e) => {
+        onLayout={(e) => {
           const h = e.nativeEvent.layout.height;
           shContainerH.value = h;
           setContainerHeight(h);
-        } : undefined}
+        }}
         {...(Platform.OS === 'web' ? { onWheel: handleWheel, onClick: handleClick, onMouseMove: handleMouseMove } : {})}
       >
       <Animated.View
