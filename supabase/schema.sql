@@ -14,7 +14,7 @@ create table camps (
   constraint camps_address_unique unique (address),
   constraint camps_name_length    check (char_length(name) >= 3),
   constraint camps_bio_length     check (char_length(bio) <= 200),
-  constraint camps_vibe_count     check (array_length(vibe_tags, 1) between 3 and 5),
+  constraint camps_vibe_count     check (array_length(vibe_tags, 1) between 3 and 10),
   constraint camps_address_format check (address ~ '^C([1-9]|[1-9][0-9]|100)-([1-9]|10)$')
 );
 
