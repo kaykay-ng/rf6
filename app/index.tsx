@@ -224,16 +224,6 @@ export default function MapScreen() {
                 <ZoneHoverCard zoneId={hoveredZoneId} camps={zoneCamps} />
               ) : null;
             })()}
-            <View style={[styles.legend, { paddingBottom: insets.bottom + 8 }]}>
-              <View style={styles.legendRow}>
-                <LegendItem color="#2d6838" label="Northwest" />
-                <LegendItem color="#3a8040" label="Southeast" />
-                <LegendItem color={Colors.accent} label="Registered camp" />
-              </View>
-              <Text variant="caption" style={styles.legendCount}>
-                100 zones · C1–C100 · 10 slots each · 1,000 total sites
-              </Text>
-            </View>
             <Animated.View style={[styles.sheetWrapper, sheetStyle]}>
               {selectedCamp && (
                 <CampSheet
@@ -264,16 +254,6 @@ export default function MapScreen() {
                 <ZoneHoverCard zoneId={hoveredZoneId} camps={zoneCamps} />
               ) : null;
             })()}
-          <View style={[styles.legend, { paddingBottom: insets.bottom + 8 }]}>
-            <View style={styles.legendRow}>
-              <LegendItem color="#2d6838" label="Northwest" />
-              <LegendItem color="#3a8040" label="Southeast" />
-              <LegendItem color={Colors.accent} label="Registered camp" />
-            </View>
-            <Text variant="caption" style={styles.legendCount}>
-              100 zones · C1–C100 · 10 slots each · 1,000 total sites
-            </Text>
-          </View>
           <Animated.View style={[styles.sheetWrapper, sheetStyle]}>
             {selectedCamp && (
               <CampSheet
@@ -367,14 +347,6 @@ const styles = StyleSheet.create({
   },
   badgeZone: { fontSize: 18, color: Colors.text, marginBottom: 1 },
   badgeSub:  { color: Colors.textSecondary, letterSpacing: 0.3 },
-
-  // ── Legend ──
-  legend:     { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: Colors.white, borderTopWidth: 1, borderTopColor: Colors.border, paddingTop: 10, paddingHorizontal: 16 },
-  legendRow:  { flexDirection: 'row', gap: 16, marginBottom: 4 },
-  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  swatch:     { width: 10, height: 10, borderRadius: 2 },
-  legendLabel:{ color: Colors.textSecondary },
-  legendCount:{ color: Colors.textSecondary, letterSpacing: 0.2 },
 
   // ── Bottom sheet ──
   sheetWrapper: {
