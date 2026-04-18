@@ -311,15 +311,6 @@ function DrawerItem({ label, onPress, destructive }: { label: string; onPress: (
   );
 }
 
-function LegendItem({ color, label }: { color: string; label: string }) {
-  return (
-    <View style={styles.legendItem}>
-      <View style={[styles.swatch, { backgroundColor: color }]} />
-      <Text variant="caption" style={styles.legendLabel}>{label}</Text>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
 
