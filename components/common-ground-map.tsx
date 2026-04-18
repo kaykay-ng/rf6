@@ -14,11 +14,17 @@ import { Platform, useWindowDimensions, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { runOnJS, useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 import Svg, { G, Path, Polyline, Rect as SvgRect, Text as SvgText } from 'react-native-svg';
+import { CampOverlay } from './camp-overlay';
 
 const VIEW_WIDTH   = 680;
 const VIEW_HEIGHT  = 560;
 const MIN_SCALE    = 0.8;
 const MAX_SCALE    = 4;
+const INITIAL_SCALE  = 1.6;
+// Pixels to shift the map content right/down at startup so the green camping
+// zone (center of the map) is visible at 150% zoom instead of the top-left corner.
+const INITIAL_OFFSET_X = -100;
+const INITIAL_OFFSET_Y = 250;
 // Browser DevTools touch simulation reports much larger e.scale deltas than
 // real native touch — use a lower dampen value on web to compensate.
 const PINCH_DAMPEN = Platform.OS === 'web' ? 0.32 : 0.25;
@@ -45,23 +51,28 @@ export type Camp = {
   address: string; // e.g. 'C5-3' — zone C5, slot 3
   vibes: string[];
   bio: string;
+  imageUri?: string;
 };
 
 type Props = {
   camps: Camp[];
   zones: CampZone[];
-  activeCampAddresses?: Set<string>;
+  liveEventSlots?: Set<string>;
+  eventColors?: Record<string, string>; // address → dot color
+  containerWidth?: number; // pass when inside a narrower container; falls back to useWindowDimensions
   onSelectCamp: (camp: Camp) => void;
   onDismiss: () => void;
   onZoneChange?: (zoneId: string | null) => void;
+  onHoverZone?: (zoneId: string | null) => void;
 };
 
 function clamp(v: number, lo: number, hi: number) { 'worklet'; return Math.min(Math.max(v, lo), hi); }
 function clampTx(tx: number, sc: number, w: number, ox: number) { 'worklet'; return clamp(tx, -(ox + w*(sc-1)/2), ox + w*(sc-1)/2); }
 function clampTy(ty: number, sc: number, h: number, oy: number) { 'worklet'; return clamp(ty, -(oy + h*(sc-1)/2), oy + h*(sc-1)/2); }
 
-export function CommonGroundMap({ camps, zones, activeCampAddresses, onSelectCamp, onDismiss, onZoneChange }: Props) {
-  const { width } = useWindowDimensions();
+export function CommonGroundMap({ camps, zones, liveEventSlots, eventColors, containerWidth, onSelectCamp, onDismiss, onZoneChange, onHoverZone }: Props) {
+  const windowWidth = useWindowDimensions().width;
+  const width = containerWidth ?? windowWidth;
 
   // containerHeight drives baseScale. Start with a width-based estimate;
   // onLayout corrects it once the container is measured.
@@ -91,10 +102,10 @@ export function CommonGroundMap({ camps, zones, activeCampAddresses, onSelectCam
   const [hoveredZoneId, setHoveredZoneId] = useState<string | null>(null);
   const [overCamp, setOverCamp] = useState(false);
 
-  const scale      = useSharedValue(1);
-  const translateX = useSharedValue(0);
-  const translateY = useSharedValue(0);
-  const savedScale = useSharedValue(1);
+  const scale      = useSharedValue(INITIAL_SCALE);
+  const translateX = useSharedValue(INITIAL_OFFSET_X);
+  const translateY = useSharedValue(INITIAL_OFFSET_Y);
+  const savedScale = useSharedValue(INITIAL_SCALE);
   const savedX     = useSharedValue(0);
   const savedY     = useSharedValue(0);
   const pinchFX    = useSharedValue(0);
@@ -200,6 +211,7 @@ export function CommonGroundMap({ camps, zones, activeCampAddresses, onSelectCam
     const id = zone?.id ?? null;
     setHoveredZoneId(id);
     onZoneChange?.(id);
+    onHoverZone?.(id);
     const slotAddr = findSlotAt(svgX, svgY);
     setOverCamp(slotAddr ? campsByAddress.has(slotAddr) : false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -295,29 +307,36 @@ export function CommonGroundMap({ camps, zones, activeCampAddresses, onSelectCam
                   strokeWidth={0.5}
                 />
 
-                {/* 10 camp slots in a 5×2 grid */}
-                {Array.from({ length: CAMP_ROWS }, (_, row) =>
-                  Array.from({ length: CAMP_COLS }, (_, col) => {
-                    const slotNum  = row * CAMP_COLS + col + 1;
-                    const slotAddr = `${zone.id}-${slotNum}`;
-                    const occupied = campsByAddress.has(slotAddr);
-                    const active   = occupied && (activeCampAddresses?.has(slotAddr) ?? false);
-                    const slotFill = active ? '#E8252A' : occupied ? Colors.white : c.slot;
-                    const slotStroke = active ? '#C01020' : occupied ? Colors.white : c.slotStroke;
-                    return (
-                      <SvgRect
-                        key={slotAddr}
-                        x={zone.x + col * CAMP_CS + 0.5}
-                        y={zone.y + row * CAMP_CS + 0.5}
-                        width={CAMP_BS - 1} height={CAMP_BS - 1}
-                        rx={1}
-                        fill={slotFill}
-                        stroke={slotStroke}
-                        strokeWidth={0.4}
-                      />
-                    );
-                  })
-                )}
+                {/* Dynamic camp slots — only occupied slots, spread within cell */}
+                {campsByZone.get(zone.id)?.map((camp, campIdx) => {
+                  const zoneCamps = campsByZone.get(zone.id)!;
+                  const n = zoneCamps.length;
+                  const cols = Math.min(n, 5);
+                  const rows = Math.ceil(n / cols);
+                  const col = campIdx % cols;
+                  const row = Math.floor(campIdx / cols);
+                  const cellW = ZONE_W - 4;
+                  const cellH = ZONE_H - 6;
+                  const colW = cellW / cols;
+                  const rowH = cellH / rows;
+                  const dotSize = Math.max(4, (CAMP_BS - 1) + (10 - n) * 0.4);
+                  const x = zone.x + 2 + col * colW + colW / 2 - dotSize / 2;
+                  const y = zone.y + 2 + row * rowH + rowH / 2 - dotSize / 2;
+                  const isLiveSlot = liveEventSlots?.has(camp.address) ?? false;
+                  const slotFill = eventColors?.[camp.address] ?? '#E8252A';
+                  const slotStroke = eventColors?.[camp.address] ? 'transparent' : '#C01020';
+                  return (
+                    <SvgRect
+                      key={camp.address}
+                      x={x} y={y}
+                      width={dotSize} height={dotSize}
+                      rx={isLiveSlot ? dotSize / 2 : 1}
+                      fill={slotFill}
+                      stroke={slotStroke}
+                      strokeWidth={0.4}
+                    />
+                  );
+                })}
 
                 {/* Zone ID label */}
                 <SvgText
@@ -335,11 +354,44 @@ export function CommonGroundMap({ camps, zones, activeCampAddresses, onSelectCam
           })}
 
 
-          {/* Zone labels NW / SE */}
-          <SvgText x={295} y={90}  fontSize={10} fontWeight="600" fontFamily="Oswald_700Bold, Oswald, ui-sans-serif, system-ui, sans-serif" fill="#1a4a25" textAnchor="middle">Northwest</SvgText>
-          <SvgText x={480} y={310} fontSize={10} fontWeight="600" fontFamily="Oswald_700Bold, Oswald, ui-sans-serif, system-ui, sans-serif" fill="#1a4a25" textAnchor="middle">Southeast</SvgText>
-
         </Svg>
+
+        {/* Overlay layer — live event flags, moves with pan/zoom */}
+        {liveEventSlots && liveEventSlots.size > 0 &&
+          Array.from(liveEventSlots).map((addr) => {
+            const camp = campsByAddress.get(addr);
+            if (!camp) return null;
+            const zone = zones.find(z => z.id === camp.address.split('-')[0]);
+            if (!zone) return null;
+            const zoneCamps = campsByZone.get(zone.id) ?? [];
+            const campIdx = zoneCamps.findIndex(c => c.address === addr);
+            if (campIdx === -1) return null;
+            const n = zoneCamps.length;
+            const cols = Math.min(n, 5);
+            const rows = Math.ceil(n / cols);
+            const col = campIdx % cols;
+            const row = Math.floor(campIdx / cols);
+            const cellW = ZONE_W - 4;
+            const cellH = ZONE_H - 6;
+            const colW = cellW / cols;
+            const rowH = cellH / rows;
+            const dotX = zone.x + 2 + col * colW + colW / 2;
+            const dotY = zone.y + 2 + row * rowH + rowH / 2;
+            const absX = dotX * baseScale;
+            const absY = dotY * baseScale;
+            const overlaySize = Math.max(16, 18 * baseScale);
+            return (
+              <CampOverlay
+                key={addr}
+                address={addr}
+                imageUri={camp.imageUri}
+                x={absX - overlaySize / 2}
+                y={absY - overlaySize / 2}
+                scale={baseScale}
+              />
+            );
+          })}
+
       </Animated.View>
       </View>
     </GestureDetector>

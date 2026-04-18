@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { View, StyleSheet, Platform, Pressable, Alert } from 'react-native';
+import { View, StyleSheet, Platform, Pressable, Alert, useWindowDimensions } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
@@ -13,19 +13,64 @@ import { Colors } from '@/constants/theme';
 import { Text } from '@/components/ui/text';
 import { supabase } from '@/lib/supabase';
 import { useSession } from '@/context/session';
+import { LiveEventsSidebar, eventColorForIndex } from '@/components/live-events-sidebar';
+import { ZoneHoverCard } from '@/components/zone-hover-card';
+import { isLiveEvent } from '@/components/event-card';
 
-const SHEET_HIDDEN  = 540;
-const SHEET_HEIGHT  = 520;
-const DRAWER_WIDTH  = 280;
+const SHEET_HIDDEN   = 540;
+const SHEET_HEIGHT   = 520;
+const DRAWER_WIDTH   = 280;
+const WIDE_BREAKPOINT = 1024;
 
 export default function MapScreen() {
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
   const { session, logout } = useSession();
   const [camps, setCamps]               = useState<Camp[]>([]);
   const [selectedCamp, setSelectedCamp] = useState<Camp | null>(null);
   const [campEvents, setCampEvents]     = useState<CampEvent[] | null>(null);
   const [activeZone, setActiveZone]     = useState<string | null>(null);
+  const [hoveredZoneId, setHoveredZoneId] = useState<string | null>(null);
   const [drawerOpen, setDrawerOpen]     = useState(false);
+
+  const isWide = width >= WIDE_BREAKPOINT;
+  const [mapContainerWidth, setMapContainerWidth] = useState(0);
+
+  // ── Today's events (for sidebar) ─────────────────────────────────────────
+  const todaysEvents = useMemo(() => {
+    const today = new Date().toISOString().split('T')[0];
+    return MOCK_EVENTS
+      .filter((e) => e.date === today)
+      .sort((a, b) => {
+        const liveA = isLiveEvent(a) ? -1 : 1;
+        const liveB = isLiveEvent(b) ? -1 : 1;
+        if (liveA !== liveB) return liveA - liveB;
+        return `${a.date}T${a.time}`.localeCompare(`${b.date}T${b.time}`);
+      });
+  }, []);
+
+  // Map camp address → event dot color (via host_camp_id)
+  // Only compute once camps are loaded, to avoid flashing coloured dots before data arrives
+  const eventColors = useMemo(() => {
+    if (camps.length === 0) return {};
+    const map: Record<string, string> = {};
+    MOCK_EVENTS.forEach((event, i) => {
+      const camp = camps.find((c) => c.address === event.host_camp_id);
+      if (camp) {
+        map[camp.address] = eventColorForIndex(i);
+      }
+    });
+    return map;
+  }, [camps]);
+
+  const getEventColor = (event: CampEvent) => {
+    const idx = MOCK_EVENTS.findIndex((e) => e.id === event.id);
+    return eventColorForIndex(idx);
+  };
+
+  const getHostCampName = (event: CampEvent) => {
+    return camps.find((c) => c.address === event.host_camp_id)?.name;
+  };
 
   useEffect(() => {
     supabase
@@ -50,10 +95,15 @@ export default function MapScreen() {
   }));
 
   // TODO: replace with real Supabase query once events table exists
-  const activeCampAddresses = useMemo(() => {
-    if (!hasActiveEvent(MOCK_EVENTS)) return new Set<string>();
-    return new Set(camps.map(c => c.address));
-  }, [camps]);
+  const liveEventSlots = useMemo(() => {
+    const now = Date.now();
+    const live = MOCK_EVENTS.filter((e) => {
+      const start = new Date(`${e.date}T${e.time}:00`).getTime();
+      const diffMin = (start - now) / 60_000;
+      return diffMin >= -30 && diffMin <= 60;
+    });
+    return new Set(live.map((e) => e.host_camp_id));
+  }, []);
 
   function handleSelectCamp(camp: Camp) {
     setSelectedCamp(camp);
@@ -139,49 +189,103 @@ export default function MapScreen() {
         }}
       />
 
-      {/* ── Map ── */}
-      <CommonGroundMap
-        camps={camps}
-        zones={ZONES}
-        activeCampAddresses={activeCampAddresses}
-        onSelectCamp={handleSelectCamp}
-        onDismiss={dismissSheet}
-        onZoneChange={handleZoneChange}
-      />
+      {/* ── Wide-screen layout: sidebar + map ── */}
+      {isWide ? (
+        <View style={styles.wideLayout}>
+          {/* 40% event sidebar */}
+          <View style={styles.sidebarWrapper}>
+            <LiveEventsSidebar
+              events={todaysEvents}
+              getEventColor={getEventColor}
+              getHostCampName={getHostCampName}
+              onEventPress={(event) => {
+                const camp = camps.find((c) => c.address === event.host_camp_id);
+                if (camp) handleSelectCamp(camp);
+              }}
+            />
+          </View>
 
-      {/* ── Zone address badge ── */}
-      {activeZone && !selectedCamp && (
-        <View style={styles.badge}>
-          <Text variant="heading" style={styles.badgeZone}>{activeZone}</Text>
-          <Text variant="caption" style={styles.badgeSub}>
-            Common Ground · {Platform.OS === 'web' ? 'click' : 'tap'} to explore
-          </Text>
+          {/* 60% map area */}
+          <View style={styles.mapArea} onLayout={(e) => setMapContainerWidth(e.nativeEvent.layout.width)}>
+            <CommonGroundMap
+              camps={camps}
+              zones={ZONES}
+              liveEventSlots={liveEventSlots}
+              eventColors={eventColors}
+              containerWidth={mapContainerWidth || undefined}
+              onSelectCamp={handleSelectCamp}
+              onDismiss={dismissSheet}
+              onZoneChange={handleZoneChange}
+              onHoverZone={(id) => setHoveredZoneId(id)}
+            />
+            {hoveredZoneId && !selectedCamp && (() => {
+              const zoneCamps = camps.filter(c => c.address.startsWith(hoveredZoneId + '-'));
+              return zoneCamps.length > 0 ? (
+                <ZoneHoverCard zoneId={hoveredZoneId} camps={zoneCamps} />
+              ) : null;
+            })()}
+            <View style={[styles.legend, { paddingBottom: insets.bottom + 8 }]}>
+              <View style={styles.legendRow}>
+                <LegendItem color="#2d6838" label="Northwest" />
+                <LegendItem color="#3a8040" label="Southeast" />
+                <LegendItem color={Colors.accent} label="Registered camp" />
+              </View>
+              <Text variant="caption" style={styles.legendCount}>
+                100 zones · C1–C100 · 10 slots each · 1,000 total sites
+              </Text>
+            </View>
+            <Animated.View style={[styles.sheetWrapper, sheetStyle]}>
+              {selectedCamp && (
+                <CampSheet
+                  camp={selectedCamp}
+                  events={campEvents}
+                  paddingBottom={insets.bottom + 16}
+                  onDismiss={dismissSheet}
+                />
+              )}
+            </Animated.View>
+          </View>
         </View>
-      )}
-
-      {/* ── Legend ── */}
-      <View style={[styles.legend, { paddingBottom: insets.bottom + 8 }]}>
-        <View style={styles.legendRow}>
-          <LegendItem color="#2d6838" label="Northwest" />
-          <LegendItem color="#3a8040" label="Southeast" />
-          <LegendItem color={Colors.accent} label="Registered camp" />
-        </View>
-        <Text variant="caption" style={styles.legendCount}>
-          100 zones · C1–C100 · 10 slots each · 1,000 total sites
-        </Text>
-      </View>
-
-      {/* ── Camp profile bottom sheet ── */}
-      <Animated.View style={[styles.sheetWrapper, sheetStyle]}>
-        {selectedCamp && (
-          <CampSheet
-            camp={selectedCamp}
-            events={campEvents}
-            paddingBottom={insets.bottom + 16}
+      ) : (
+        /* ── Narrow-screen layout: full map ── */
+        <>
+          <CommonGroundMap
+            camps={camps}
+            zones={ZONES}
+            liveEventSlots={liveEventSlots}
+            onSelectCamp={handleSelectCamp}
             onDismiss={dismissSheet}
+            onZoneChange={handleZoneChange}
+              onHoverZone={(id) => setHoveredZoneId(id)}
           />
-        )}
-      </Animated.View>
+          {hoveredZoneId && !selectedCamp && (() => {
+              const zoneCamps = camps.filter(c => c.address.startsWith(hoveredZoneId + '-'));
+              return zoneCamps.length > 0 ? (
+                <ZoneHoverCard zoneId={hoveredZoneId} camps={zoneCamps} />
+              ) : null;
+            })()}
+          <View style={[styles.legend, { paddingBottom: insets.bottom + 8 }]}>
+            <View style={styles.legendRow}>
+              <LegendItem color="#2d6838" label="Northwest" />
+              <LegendItem color="#3a8040" label="Southeast" />
+              <LegendItem color={Colors.accent} label="Registered camp" />
+            </View>
+            <Text variant="caption" style={styles.legendCount}>
+              100 zones · C1–C100 · 10 slots each · 1,000 total sites
+            </Text>
+          </View>
+          <Animated.View style={[styles.sheetWrapper, sheetStyle]}>
+            {selectedCamp && (
+              <CampSheet
+                camp={selectedCamp}
+                events={campEvents}
+                paddingBottom={insets.bottom + 16}
+                onDismiss={dismissSheet}
+              />
+            )}
+          </Animated.View>
+        </>
+      )}
 
       {/* ── Drawer backdrop ── */}
       {drawerOpen && (
@@ -239,6 +343,11 @@ function LegendItem({ color, label }: { color: string; label: string }) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
 
+  // ── Wide layout ──
+  wideLayout:     { flex: 1, flexDirection: 'row' },
+  sidebarWrapper: { width: '40%' },
+  mapArea:        { flex: 1, position: 'relative' },
+
   // ── Header hamburger ──
   hamburger: { paddingHorizontal: 4, gap: 5, justifyContent: 'center' },
   bar:       { width: 22, height: 2, borderRadius: 1, backgroundColor: Colors.text },
@@ -251,6 +360,10 @@ const styles = StyleSheet.create({
     shadowColor: '#000', shadowOpacity: 0.10, shadowRadius: 12,
     shadowOffset: { width: 0, height: 2 }, elevation: 6,
     alignItems: 'flex-end',
+  },
+  badgeWide: {
+    // Same badge but constrained to map area — right edge already 16px from container
+    right: 16,
   },
   badgeZone: { fontSize: 18, color: Colors.text, marginBottom: 1 },
   badgeSub:  { color: Colors.textSecondary, letterSpacing: 0.3 },

@@ -1,25 +1,11 @@
 import { type Camp } from '@/components/common-ground-map';
 import { Text } from '@/components/ui/text';
 import { Colors } from '@/constants/theme';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { type CampEvent, isLiveEvent } from './event-card';
 
-// ── Types ─────────────────────────────────────────────────────────────────────
-
-export type CampEvent = {
-  id: string;
-  name: string;
-  date: string;          // ISO e.g. '2026-06-28'
-  time: string;          // e.g. '18:00'
-  location_type: 'our_camp' | 'nearby' | 'tbd';
-  description?: string;
-  max_capacity?: number;
-};
-
-function formatDate(isoDate: string, time: string): string {
-  const d = new Date(isoDate + 'T12:00:00');
-  const day = d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
-  return `${day} · ${time}`;
-}
+// Re-export CampEvent for consumers of camp-sheet
+export type { CampEvent } from './event-card';
 
 // ── CampSheet ─────────────────────────────────────────────────────────────────
 
@@ -69,56 +55,50 @@ export function CampSheet({ camp, events, paddingBottom, onDismiss }: Props) {
           {/* Bio */}
           {!!camp.bio && <Text style={styles.bio}>{camp.bio}</Text>}
 
-          {/* Events section */}
-          <View style={styles.sectionRow}>
-            <View style={styles.sectionLine} />
-            <Text style={styles.sectionLabel}>EVENTS</Text>
-            <View style={styles.sectionLine} />
-          </View>
-
-          {events === null && (
-            <ActivityIndicator size="small" color={Colors.accent} style={styles.loader} />
+          {/* Events */}
+          {!!events && events.length > 0 && (
+            <>
+              <View style={styles.eventSectionDivider}>
+                <View style={styles.sectionLine} />
+                <Text style={styles.sectionLabel}>EVENTS</Text>
+                <View style={styles.sectionLine} />
+              </View>
+              {events
+                .filter(e => e.host_camp_id === camp.address)
+                .sort((a, b) => {
+                  const liveA = isLiveEvent(a) ? -1 : 1;
+                  const liveB = isLiveEvent(b) ? -1 : 1;
+                  return liveA !== liveB ? liveA - liveB : `${a.date}T${a.time}`.localeCompare(`${b.date}T${b.time}`);
+                })
+                .map((event) => (
+                  <View key={event.id} style={styles.eventRow}>
+                    <View style={styles.eventDot} />
+                    <View style={styles.eventInfo}>
+                      <View style={styles.eventTitleRow}>
+                        <Text style={styles.eventName}>{event.name}</Text>
+                        {isLiveEvent(event) && (
+                          <View style={styles.eventBadge}>
+                            <Text style={styles.eventBadgeText}>NOW</Text>
+                          </View>
+                        )}
+                      </View>
+                      <Text style={styles.eventMeta}>
+                        {event.date && event.time ? `${event.date} · ${event.time}` : event.location_type}
+                      </Text>
+                      {!!event.description && (
+                        <Text style={styles.eventDesc}>{event.description}</Text>
+                      )}
+                      {event.max_capacity != null && (
+                        <Text style={styles.eventCapacity}>{event.max_capacity} spots</Text>
+                      )}
+                    </View>
+                  </View>
+                ))}
+            </>
           )}
-          {events !== null && events.length === 0 && (
-            <Text style={styles.emptyText}>No upcoming events.</Text>
-          )}
-          {events?.map((evt) => (
-            <EventCard key={evt.id} event={evt} />
-          ))}
 
         </ScrollView>
 
-      </View>
-    </View>
-  );
-}
-
-// ── EventCard ─────────────────────────────────────────────────────────────────
-
-function EventCard({ event }: { event: CampEvent }) {
-  const locationLabel = {
-    our_camp: 'Our camp',
-    nearby:   'Nearby',
-    tbd:      'Location TBD',
-  }[event.location_type] ?? event.location_type;
-
-  return (
-    <View style={styles.card}>
-      <View style={styles.cardBar} />
-      <View style={styles.cardBody}>
-        <Text style={styles.cardName}>{event.name}</Text>
-        <Text style={styles.cardMeta}>{formatDate(event.date, event.time)}</Text>
-        {!!event.description && (
-          <Text style={styles.cardDesc} numberOfLines={1}>{event.description}</Text>
-        )}
-        <View style={styles.cardFooter}>
-          <View style={styles.locBadge}>
-            <Text style={styles.locText}>{locationLabel}</Text>
-          </View>
-          {event.max_capacity != null && (
-            <Text style={styles.cardCapacity}>{event.max_capacity} spots</Text>
-          )}
-        </View>
       </View>
     </View>
   );
@@ -255,6 +235,75 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
   },
 
+  // ── Events ──
+  eventSectionDivider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 14,
+    marginTop: 4,
+  },
+  eventRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    marginBottom: 14,
+  },
+  eventDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: Colors.accent,
+    marginTop: 5,
+  },
+  eventInfo: {
+    flex: 1,
+  },
+  eventTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  eventName: {
+    fontFamily: 'Oswald_700Bold',
+    fontSize: 14,
+    letterSpacing: 0.5,
+    color: Colors.text,
+    flex: 1,
+  },
+  eventBadge: {
+    backgroundColor: Colors.accent,
+    borderRadius: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  eventBadgeText: {
+    fontFamily: 'Oswald_700Bold',
+    fontSize: 9,
+    letterSpacing: 1.5,
+    color: Colors.white,
+  },
+  eventMeta: {
+    fontFamily: 'Oswald_400Regular',
+    fontSize: 11,
+    color: Colors.textSecondary,
+    letterSpacing: 0.3,
+    marginTop: 2,
+  },
+  eventDesc: {
+    fontSize: 12,
+    lineHeight: 18,
+    color: Colors.textSecondary,
+    marginTop: 4,
+  },
+  eventCapacity: {
+    fontFamily: 'Oswald_400Regular',
+    fontSize: 11,
+    color: Colors.textSecondary,
+    letterSpacing: 0.3,
+    marginTop: 2,
+  },
+
   // ── Empty / loading ──
   loader: {
     marginVertical: 24,
@@ -266,69 +315,5 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     letterSpacing: 0.3,
     paddingVertical: 18,
-  },
-
-  // ── Event card ──
-  card: {
-    flexDirection: 'row',
-    backgroundColor: Colors.white,
-    borderRadius: 10,
-    marginBottom: 10,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  cardBar: {
-    width: 4,
-    backgroundColor: Colors.accent,
-  },
-  cardBody: {
-    flex: 1,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    gap: 3,
-  },
-  cardName: {
-    fontFamily: 'Oswald_700Bold',
-    fontSize: 15,
-    letterSpacing: 0.5,
-    color: Colors.text,
-  },
-  cardMeta: {
-    fontFamily: 'Oswald_400Regular',
-    fontSize: 12,
-    color: Colors.textSecondary,
-    letterSpacing: 0.3,
-  },
-  cardDesc: {
-    fontSize: 12,
-    color: Colors.textSecondary,
-    lineHeight: 17,
-    marginTop: 1,
-  },
-  cardFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginTop: 4,
-  },
-  locBadge: {
-    backgroundColor: Colors.surface,
-    borderRadius: 4,
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-  },
-  locText: {
-    fontFamily: 'Oswald_400Regular',
-    fontSize: 10,
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
-    color: Colors.textSecondary,
-  },
-  cardCapacity: {
-    fontFamily: 'Oswald_400Regular',
-    fontSize: 11,
-    color: Colors.textSecondary,
-    letterSpacing: 0.3,
   },
 });
