@@ -114,17 +114,22 @@ export function CommonGroundMap({ camps, zones, liveEventSlots, eventColors, con
   const pinchTy    = useSharedValue(0);
   const lastMove   = useRef(0);
 
-  // ── Lookup maps ───────────────────────────────────────────────────────────
-  const campsByAddress = new Map<string, Camp>();
-  const campsByZone    = new Map<string, Camp[]>();
-  for (const camp of camps) {
-    campsByAddress.set(camp.address, camp);
-    const parsed = parseAddress(camp.address);
-    if (parsed) {
-      const list = campsByZone.get(parsed.zoneId) ?? [];
-      campsByZone.set(parsed.zoneId, [...list, camp]);
+  const campsByAddress = useMemo(() => {
+    const map = new Map<string, Camp>();
+    for (const camp of camps) map.set(camp.address, camp);
+    return map;
+  }, [camps]);
+
+  const campsByZone = useMemo(() => {
+    const map = new Map<string, Camp[]>();
+    for (const camp of camps) {
+      const parsed = parseAddress(camp.address);
+      if (!parsed) continue;
+      const list = map.get(parsed.zoneId) ?? [];
+      map.set(parsed.zoneId, [...list, camp]);
     }
-  }
+    return map;
+  }, [camps]);
 
   // ── Zone hit test ─────────────────────────────────────────────────────────
   const findZoneAt = useCallback(
@@ -383,7 +388,6 @@ export function CommonGroundMap({ camps, zones, liveEventSlots, eventColors, con
             return (
               <CampOverlay
                 key={addr}
-                address={addr}
                 imageUri={camp.imageUri}
                 x={absX - overlaySize / 2}
                 y={absY - overlaySize / 2}

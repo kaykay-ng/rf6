@@ -87,7 +87,6 @@ function TimelineSection({ label, events, getEventColor, getHostCampName, onEven
   return (
     <View style={styles.section}>
       <View style={styles.sectionLabel}>
-        <View style={[styles.sectionBar, { backgroundColor: color }]} />
         <Text style={styles.sectionText}>{label}</Text>
       </View>
 
@@ -218,7 +217,6 @@ const styles = StyleSheet.create({
     gap: 12,
     marginBottom: 16,
   },
-  sectionBar: { width: 4, height: 18, borderRadius: 2 },
   sectionText: {
     fontFamily: 'Oswald_400Regular',
     fontSize: 18,

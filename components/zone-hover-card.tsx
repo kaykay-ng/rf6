@@ -9,7 +9,6 @@ type Props = {
 };
 
 export function ZoneHoverCard({ zoneId, camps }: Props) {
-  // Sort by slot number
   const sorted = [...camps].sort((a, b) => {
     const slotA = parseInt(a.address.split('-')[1] ?? '0', 10);
     const slotB = parseInt(b.address.split('-')[1] ?? '0', 10);
@@ -68,49 +67,12 @@ const styles = StyleSheet.create({
     color: Colors.text,
     marginBottom: 10,
   },
-  campList: {
-    gap: 8,
-  },
-  campRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  flagThumb: {
-    width: 20,
-    height: 20,
-    borderRadius: 3,
-    overflow: 'hidden',
-    backgroundColor: Colors.surface,
-    flexShrink: 0,
-  },
-  flagImg: {
-    width: 20,
-    height: 20,
-  },
-  flagPlaceholder: {
-    width: 20,
-    height: 20,
-    backgroundColor: Colors.accent,
-    borderRadius: 3,
-  },
-  campName: {
-    flex: 1,
-    fontFamily: 'Oswald_400Regular',
-    fontSize: 13,
-    color: Colors.text,
-    letterSpacing: 0.3,
-  },
-  slotNum: {
-    fontFamily: 'Oswald_400Regular',
-    fontSize: 11,
-    color: Colors.textSecondary,
-    letterSpacing: 0.3,
-  },
-  emptyText: {
-    fontFamily: 'Oswald_400Regular',
-    fontSize: 12,
-    color: Colors.textSecondary,
-    fontStyle: 'italic',
-  },
+  campList: { gap: 8 },
+  campRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  flagThumb: { width: 20, height: 20, borderRadius: 3, overflow: 'hidden', backgroundColor: Colors.surface, flexShrink: 0 },
+  flagImg: { width: 20, height: 20 },
+  flagPlaceholder: { width: 20, height: 20, backgroundColor: Colors.accent, borderRadius: 3 },
+  campName: { flex: 1, fontFamily: 'Oswald_400Regular', fontSize: 13, color: Colors.text, letterSpacing: 0.3 },
+  slotNum: { fontFamily: 'Oswald_400Regular', fontSize: 11, color: Colors.textSecondary, letterSpacing: 0.3 },
+  emptyText: { fontFamily: 'Oswald_400Regular', fontSize: 12, color: Colors.textSecondary, fontStyle: 'italic' },
 });
