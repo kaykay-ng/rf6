@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { View, TextInput, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
+import { useState, useEffect } from 'react';
+import { View, TextInput, StyleSheet, Pressable, ActivityIndicator, Keyboard } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { useOnboarding } from '@/context/onboarding';
@@ -18,6 +18,12 @@ export default function OnboardingPinScreen() {
   const [pinError, setPinError] = useState(false);
 
   const canSubmit = data.pin.length === 6 && !loading;
+
+  useEffect(() => {
+    if (data.pin.length === 6) {
+      Keyboard.dismiss();
+    }
+  }, [data.pin.length]);
 
   async function handleSubmit() {
     if (!canSubmit) return;

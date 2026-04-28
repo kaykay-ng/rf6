@@ -143,18 +143,38 @@ export function CommonGroundMap({ camps, zones, liveEventSlots, eventColors, con
     [zones],
   );
 
-  // ── Slot hit test — returns e.g. 'C5-3' or null ───────────────────────────
-  const findSlotAt = useCallback(
+  // ── Camp hit test — returns camp address or null ────────────────────────
+  const findCampAt = useCallback(
     (svgX: number, svgY: number): string | null => {
       const zone = findZoneAt(svgX, svgY);
       if (!zone) return null;
-      const col = Math.floor((svgX - zone.x) / CAMP_CS);
-      const row = Math.floor((svgY - zone.y) / CAMP_CS);
-      if (col < 0 || col >= CAMP_COLS || row < 0 || row >= CAMP_ROWS) return null;
-      const slotNum = row * CAMP_COLS + col + 1;
-      return `${zone.id}-${slotNum}`;
+
+      const zoneCamps = campsByZone.get(zone.id);
+      if (!zoneCamps || zoneCamps.length === 0) return null;
+
+      const n = zoneCamps.length;
+      const cols = Math.min(n, 5);
+      const rows = Math.ceil(n / cols);
+      const cellW = ZONE_W - 4;
+      const cellH = ZONE_H - 6;
+      const colW = cellW / cols;
+      const rowH = cellH / rows;
+      const hitRadius = 8;
+
+      for (let campIdx = 0; campIdx < zoneCamps.length; campIdx++) {
+        const col = campIdx % cols;
+        const row = Math.floor(campIdx / cols);
+        const dotSize = Math.max(4, (CAMP_BS - 1) + (10 - n) * 0.4);
+        const campX = zone.x + 2 + col * colW + colW / 2;
+        const campY = zone.y + 2 + row * rowH + rowH / 2;
+        const dist = Math.sqrt((svgX - campX) ** 2 + (svgY - campY) ** 2);
+        if (dist <= hitRadius) {
+          return zoneCamps[campIdx].address;
+        }
+      }
+      return null;
     },
-    [findZoneAt],
+    [findZoneAt, campsByZone],
   );
 
   // Anchor point of the Animated.View in container coords.
@@ -176,8 +196,8 @@ export function CommonGroundMap({ camps, zones, liveEventSlots, eventColors, con
     const zone = findZoneAt(svgX, svgY);
     if (!zone) { onZoneChange?.(null); onDismiss(); return; }
     onZoneChange?.(zone.id);
-    const slotAddr = findSlotAt(svgX, svgY);
-    const camp = slotAddr ? campsByAddress.get(slotAddr) : undefined;
+    const campAddr = findCampAt(svgX, svgY);
+    const camp = campAddr ? campsByAddress.get(campAddr) : undefined;
     if (camp) onSelectCamp(camp);
     else onDismiss();
   }
@@ -217,10 +237,10 @@ export function CommonGroundMap({ camps, zones, liveEventSlots, eventColors, con
     setHoveredZoneId(id);
     onZoneChange?.(id);
     onHoverZone?.(id);
-    const slotAddr = findSlotAt(svgX, svgY);
-    setOverCamp(slotAddr ? campsByAddress.has(slotAddr) : false);
+    const campAddr = findCampAt(svgX, svgY);
+    setOverCamp(campAddr ? campsByAddress.has(campAddr) : false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [findZoneAt, findSlotAt, onZoneChange]);
+  }, [findZoneAt, findCampAt, onZoneChange]);
 
   // ── Gestures ──────────────────────────────────────────────────────────────
   const pan = Gesture.Pan()
