@@ -12,14 +12,20 @@ export default function WelcomeScreen() {
 
       {/* ── Hero ── */}
       <View style={styles.hero}>
-        <View style={styles.accentBar} />
-        <Text style={styles.label}>COMMON GROUND</Text>
-        <Text style={styles.title}>CLASH{'\n'}OF{'\n'}CAMPS</Text>
-        <View style={styles.divider} />
-        <Text style={styles.tagline}>
-          Discover and connect with the camps around you at Roskilde Festival
-        </Text>
-        <Text style={styles.festivalInfo}>Roskilde · 27 June – 4 July 2026</Text>
+        {Platform.OS === 'web' ? (
+          <>
+            <View style={styles.accentBar} />
+            <Text style={styles.label}>COMMON GROUND</Text>
+            <Text style={styles.title}>CLASH{'\n'}OF{'\n'}CAMPS</Text>
+            <View style={styles.divider} />
+            <Text style={styles.tagline}>
+              Discover and connect with the camps around you at Roskilde Festival
+            </Text>
+            <Text style={styles.festivalInfo}>Roskilde · 27 June – 4 July 2026</Text>
+          </>
+        ) : (
+          <Text style={styles.mobileTitle}>BOND</Text>
+        )}
       </View>
 
       {/* ── Actions ── */}
@@ -46,7 +52,7 @@ export default function WelcomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: Platform.OS === 'web' ? Colors.background : Colors.accent,
     justifyContent: 'space-between',
     paddingHorizontal: 28,
   },
@@ -55,6 +61,13 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     paddingTop: 32,
+    alignItems: Platform.OS === 'web' ? 'flex-start' : 'center',
+  },
+  mobileTitle: {
+    fontFamily: 'Oswald_700Bold',
+    fontSize: 72,
+    lineHeight: 68,
+    color: Colors.white,
   },
   accentBar: {
     width: 48,
@@ -101,19 +114,19 @@ const styles = StyleSheet.create({
     gap: 14,
   },
   primaryBtn: {
-    backgroundColor: Colors.accent,
+    backgroundColor: Platform.OS === 'web' ? Colors.accent : Colors.white,
     borderRadius: 10,
     paddingVertical: 16,
     alignItems: 'center',
   },
   primaryBtnPressed: {
-    backgroundColor: Colors.accentDark,
+    backgroundColor: Platform.OS === 'web' ? Colors.accentDark : '#f0f0f0',
   },
   primaryBtnText: {
     fontFamily: 'Oswald_700Bold',
     fontSize: 16,
     letterSpacing: 1.5,
-    color: Colors.white,
+    color: Platform.OS === 'web' ? Colors.white : Colors.text,
   },
   secondaryBtn: {
     flexDirection: 'row',
