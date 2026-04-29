@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { View, StyleSheet, Platform, Pressable, Alert, useWindowDimensions } from 'react-native';
 import { Image } from 'expo-image';
-import { Stack, router, useFocusEffect } from 'expo-router';
+import { Stack, router, useFocusEffect, Redirect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   useSharedValue, useAnimatedStyle, withSpring, withTiming,
@@ -24,6 +24,11 @@ const DRAWER_WIDTH   = 280;
 const WIDE_BREAKPOINT = 1024;
 
 export default function MapScreen() {
+  // On mobile devices, redirect to welcome (kiosk mode: registration only)
+  if (Platform.OS !== 'web') {
+    return <Redirect href="/welcome" />;
+  }
+
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const { session, logout } = useSession();

@@ -16,8 +16,8 @@ const DocumentScanner = Platform.OS === 'ios' ? require('react-native-document-s
 
 export default function OnboardingFlagScreen() {
   const insets = useSafeAreaInsets();
-  const { data, setImageUri, submit } = useOnboarding();
-  const { reload } = useSession();
+  const { data, setImageUri, submit, reset } = useOnboarding();
+  const { reload, logout } = useSession();
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -112,21 +112,39 @@ export default function OnboardingFlagScreen() {
     setSuccess(true);
     checkScale.value = withSpring(1, { damping: 6, stiffness: 100 });
     await new Promise(resolve => setTimeout(resolve, 1200));
-    await reload();
-    router.replace('/');
+
+    if (Platform.OS === 'web') {
+      // Web: reload session and go to map
+      await reload();
+      router.replace('/');
+    }
+    // Mobile: stays on success screen, user taps button to reset
+  }
+
+  async function handleRegisterNext() {
+    // Clear session and form data, return to welcome
+    await logout();
+    reset();
+    router.replace('/welcome');
   }
 
   if (success) {
+    const isWeb = Platform.OS === 'web';
     return (
       <View style={[styles.container, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 24 }]}>
         <View style={styles.successContainer}>
           <Animated.View style={[styles.checkmark, checkStyle]}>
             <Text style={styles.checkmarkText}>✓</Text>
           </Animated.View>
-          <Text style={styles.successTitle}>Camp Registered!</Text>
+          <Text style={styles.successTitle}>Camp registered!</Text>
           <Text style={styles.successText}>
-            {data.name} is now live on the map. Get ready to clash!
+            {isWeb ? `${data.name} is now live on the map. Get ready to clash!` : 'Your camp is now live on the map at our main display.'}
           </Text>
+          {!isWeb && (
+            <Pressable style={styles.registerNextBtn} onPress={handleRegisterNext}>
+              <Text style={styles.registerNextBtnText}>REGISTER NEXT CAMP</Text>
+            </Pressable>
+          )}
         </View>
       </View>
     );
@@ -213,4 +231,6 @@ const styles = StyleSheet.create({
   saveBtnText: { fontFamily: 'Oswald_700Bold', fontSize: 14, color: Colors.white, letterSpacing: 1 },
   scanBtn: { backgroundColor: Colors.accent, borderRadius: 10, paddingVertical: 18, alignItems: 'center', marginTop: 32 },
   scanBtnText: { fontFamily: 'Oswald_700Bold', fontSize: 16, color: Colors.white, letterSpacing: 1.5 },
+  registerNextBtn: { backgroundColor: Colors.accent, borderRadius: 10, paddingVertical: 16, alignItems: 'center', marginTop: 32, paddingHorizontal: 28 },
+  registerNextBtnText: { fontFamily: 'Oswald_700Bold', fontSize: 16, color: Colors.white, letterSpacing: 1.5 },
 });

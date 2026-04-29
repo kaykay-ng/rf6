@@ -1,4 +1,4 @@
-import { View, StyleSheet, Pressable } from 'react-native';
+import { View, StyleSheet, Pressable, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Colors } from '@/constants/theme';
@@ -31,10 +31,12 @@ export default function WelcomeScreen() {
           <Text style={styles.primaryBtnText}>REGISTER YOUR CAMP</Text>
         </Pressable>
 
-        <Pressable style={styles.secondaryBtn} onPress={() => router.push('/login')}>
-          <Text style={styles.secondaryBtnText}>Already registered? </Text>
-          <Text style={[styles.secondaryBtnText, styles.secondaryBtnLink]}>Log in</Text>
-        </Pressable>
+        {Platform.OS === 'web' && (
+          <Pressable style={styles.secondaryBtn} onPress={() => router.push('/login')}>
+            <Text style={styles.secondaryBtnText}>Already registered? </Text>
+            <Text style={[styles.secondaryBtnText, styles.secondaryBtnLink]}>Log in</Text>
+          </Pressable>
+        )}
       </View>
 
     </View>
