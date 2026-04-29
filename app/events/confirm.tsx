@@ -44,12 +44,15 @@ export default function ConfirmEventScreen() {
   }
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
+    <View style={[styles.container, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 24 }]}>
+      <View style={styles.body}>
+        <Text variant="heading" style={styles.title}>Confirm your event</Text>
+        <Text variant="body" style={styles.hint}>Review details and set capacity</Text>
+
         {/* Event summary */}
         <View style={styles.summaryBox}>
-          <Text style={styles.summaryTitle}>Event Summary</Text>
-          <Text style={styles.summaryField}><Text style={styles.summaryLabel}>Name:</Text> {data.name}</Text>
+          <Text style={styles.summaryTitle}>Event Details</Text>
+          <Text style={styles.summaryField}><Text style={styles.summaryLabel}>Event:</Text> {data.name}</Text>
           <Text style={styles.summaryField}><Text style={styles.summaryLabel}>Date:</Text> {data.date}</Text>
           <Text style={styles.summaryField}><Text style={styles.summaryLabel}>Time:</Text> {data.time}</Text>
           {data.location_type === 'other' ? (
@@ -58,23 +61,25 @@ export default function ConfirmEventScreen() {
             <Text style={styles.summaryField}><Text style={styles.summaryLabel}>Location:</Text> Our Camp</Text>
           )}
           {data.description && (
-            <Text style={styles.summaryField}><Text style={styles.summaryLabel}>Description:</Text> {data.description}</Text>
+            <Text style={styles.summaryField}><Text style={styles.summaryLabel}>Details:</Text> {data.description}</Text>
           )}
         </View>
 
         {/* Max capacity */}
-        <View style={styles.field}>
-          <Text style={styles.label}>Max attendees (optional)</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Leave blank for unlimited"
-            placeholderTextColor={Colors.textSecondary}
-            value={data.max_capacity}
-            onChangeText={(v) => dispatch({ type: 'SET_FIELD', field: 'max_capacity', value: v })}
-            keyboardType="number-pad"
-            maxLength={4}
-          />
-        </View>
+        <TextInput
+          style={styles.input}
+          placeholder="Leave blank for unlimited"
+          placeholderTextColor={Colors.border}
+          value={data.max_capacity}
+          onChangeText={(v) => {
+            // Only allow numeric input
+            const sanitized = v.replace(/[^0-9]/g, '');
+            dispatch({ type: 'SET_FIELD', field: 'max_capacity', value: sanitized });
+          }}
+          keyboardType="number-pad"
+          maxLength={4}
+        />
+        <Text style={styles.label} onPress={() => {}}>Max attendees (optional)</Text>
 
         {/* Loading indicator */}
         {loading && (
@@ -82,18 +87,18 @@ export default function ConfirmEventScreen() {
             <ActivityIndicator size="large" color={Colors.accent} />
           </View>
         )}
-      </ScrollView>
+      </View>
 
       {/* CTA */}
       <Pressable
-        style={[styles.cta, (!canSubmit || loading) && styles.ctaDisabled]}
+        style={[styles.submitBtn, (!canSubmit || loading) && styles.submitBtnDisabled]}
         onPress={handleSubmit}
         disabled={!canSubmit || loading}
       >
         {loading ? (
           <ActivityIndicator size="small" color={Colors.white} />
         ) : (
-          <Text style={styles.ctaText}>SUBMIT</Text>
+          <Text style={styles.submitBtnText}>SUBMIT</Text>
         )}
       </Pressable>
     </View>
@@ -101,51 +106,44 @@ export default function ConfirmEventScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
-  scroll: { flex: 1 },
-  scrollContent: {
-    paddingHorizontal: 28,
-    paddingTop: 20,
-  },
+  container: { flex: 1, backgroundColor: Colors.background, paddingHorizontal: 28 },
+  body: { flex: 1 },
+  title: { fontSize: 28, marginBottom: 10 },
+  hint: { color: Colors.textSecondary, lineHeight: 22, marginBottom: 28 },
 
   summaryBox: {
     backgroundColor: Colors.white,
     borderRadius: 10,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: Colors.border,
     padding: 16,
     marginBottom: 28,
   },
   summaryTitle: {
     fontFamily: 'Oswald_700Bold',
-    fontSize: 16,
+    fontSize: 14,
     color: Colors.text,
     letterSpacing: 0.5,
     marginBottom: 12,
   },
   summaryField: {
     fontFamily: 'Oswald_400Regular',
-    fontSize: 14,
+    fontSize: 13,
     color: Colors.text,
     letterSpacing: 0.3,
-    marginBottom: 8,
+    marginBottom: 6,
+    lineHeight: 18,
   },
   summaryLabel: {
     fontFamily: 'Oswald_700Bold',
   },
 
-  field: {
-    marginBottom: 28,
-  },
   label: {
-    fontFamily: 'Oswald_700Bold',
-    fontSize: 16,
-    color: Colors.text,
-    letterSpacing: 0.5,
-    marginBottom: 10,
+    marginTop: 8,
+    fontSize: 13,
+    color: Colors.textSecondary,
+    fontFamily: 'Oswald_400Regular',
+    letterSpacing: 0.3,
   },
 
   input: {
@@ -153,10 +151,11 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
     borderRadius: 10,
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 16,
+    paddingVertical: 14,
+    fontSize: 18,
+    fontFamily: 'ui-sans-serif, system-ui, -apple-system, sans-serif',
     color: Colors.text,
-    fontFamily: 'Oswald_400Regular',
+    backgroundColor: Colors.white,
   },
 
   loadingContainer: {
@@ -164,26 +163,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
 
-  cta: {
-    marginHorizontal: 28,
-    marginBottom: 20,
-    paddingVertical: 14,
-    backgroundColor: Colors.accent,
-    borderRadius: 10,
-    alignItems: 'center',
-  },
-  ctaDisabled: {
-    opacity: 0.4,
-  },
-  ctaText: {
-    fontFamily: 'Oswald_700Bold',
-    fontSize: 16,
-    color: Colors.white,
-    letterSpacing: 1.5,
-  },
+  submitBtn: { backgroundColor: Colors.accent, borderRadius: 10, paddingVertical: 16, alignItems: 'center' },
+  submitBtnDisabled: { opacity: 0.4 },
+  submitBtnText: { fontFamily: 'Oswald_700Bold', fontSize: 16, letterSpacing: 1.5, color: Colors.white },
 
   // Success state
   successContainer: {
+    flex: 1,
     justifyContent: 'center',
     backgroundColor: Colors.accent,
   },
