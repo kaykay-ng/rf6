@@ -103,8 +103,8 @@ export default function EventsLayout() {
           title: 'Add Event',
         }}
       >
-        <Stack.Screen name="select" options={{ title: 'Select Your Camp' }} />
-        <Stack.Screen name="pin" options={{ title: 'Verify Camp PIN' }} />
+        <Stack.Screen name="select" options={{ headerShown: false }} />
+        <Stack.Screen name="pin" options={{ headerShown: false }} />
         <Stack.Screen name="new" options={{ title: 'Event Details' }} />
         <Stack.Screen name="when" options={{ title: 'When & Where' }} />
         <Stack.Screen name="confirm" options={{ title: 'Confirm & Submit' }} />
