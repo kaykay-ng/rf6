@@ -1,10 +1,11 @@
-import { useState } from 'react';
-import { View, StyleSheet, TextInput, Pressable, ScrollView, useWindowDimensions } from 'react-native';
-import { router } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text } from '@/components/ui/text';
 import { Colors } from '@/constants/theme';
+import { router } from 'expo-router';
+import { useState } from 'react';
+import { Pressable, ScrollView, TextInput, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useEventDraft } from './_layout';
+import { eventStyles } from './styles';
 
 export default function NewEventScreen() {
   const insets = useSafeAreaInsets();
@@ -24,13 +25,14 @@ export default function NewEventScreen() {
   }
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
+    <View style={[eventStyles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+      <ScrollView style={eventStyles.scroll} contentContainerStyle={eventStyles.scrollContent}>
         {/* Event name */}
-        <View style={styles.field}>
-          <Text style={styles.label}>Event name</Text>
+        <View style={eventStyles.field}>
+          <Text style={eventStyles.title}>Event name</Text>
+          <Text style={eventStyles.subtitle}>Give it a name</Text>
           <TextInput
-            style={[styles.input, nameError && styles.inputError]}
+            style={[eventStyles.input, nameError && eventStyles.inputError]}
             placeholder="e.g. BBQ & Cold Ones"
             placeholderTextColor={Colors.textSecondary}
             value={data.name}
@@ -41,20 +43,20 @@ export default function NewEventScreen() {
             maxLength={60}
             autoFocus
           />
-          {nameError && <Text style={styles.errorText}>{nameError}</Text>}
+          {nameError && <Text style={eventStyles.errorText}>{nameError}</Text>}
         </View>
 
         {/* Description */}
-        <View style={styles.field}>
-          <View style={styles.labelRow}>
-            <Text style={styles.label}>Description</Text>
-            <Text style={styles.charCount}>{data.description.length} / 200</Text>
+        <View style={eventStyles.field}>
+          <View style={eventStyles.labelRow}>
+            <Text style={eventStyles.title}>Description</Text>
+            <Text style={eventStyles.charCount}>{data.description.length} / 200</Text>
           </View>
           <TextInput
             style={[
-              styles.input,
-              styles.inputMultiline,
-              data.description.length > 180 && styles.inputWarning,
+              eventStyles.input,
+              eventStyles.inputMultiline,
+              data.description.length > 180 && eventStyles.inputWarning,
             ]}
             placeholder="What's it about? (optional)"
             placeholderTextColor={Colors.textSecondary}
@@ -70,93 +72,12 @@ export default function NewEventScreen() {
 
       {/* CTA */}
       <Pressable
-        style={[styles.cta, !canNext && styles.ctaDisabled]}
+        style={[eventStyles.cta, !canNext && eventStyles.ctaDisabled]}
         onPress={handleNext}
         disabled={!canNext}
       >
-        <Text style={styles.ctaText}>NEXT →</Text>
+        <Text style={eventStyles.ctaText}>NEXT →</Text>
       </Pressable>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
-  scroll: { flex: 1 },
-  scrollContent: {
-    paddingHorizontal: 28,
-    paddingTop: 20,
-  },
-
-  field: {
-    marginBottom: 28,
-  },
-  label: {
-    fontFamily: 'Oswald_700Bold',
-    fontSize: 16,
-    color: Colors.text,
-    letterSpacing: 0.5,
-    marginBottom: 10,
-  },
-  labelRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  charCount: {
-    fontFamily: 'Oswald_400Regular',
-    fontSize: 12,
-    color: Colors.textSecondary,
-    letterSpacing: 0.3,
-  },
-
-  input: {
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-    borderRadius: 10,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 16,
-    color: Colors.text,
-    fontFamily: 'Oswald_400Regular',
-  },
-  inputError: {
-    borderColor: '#B01020',
-  },
-  inputWarning: {
-    borderColor: Colors.accent,
-  },
-  inputMultiline: {
-    minHeight: 110,
-    paddingTop: 12,
-  },
-  errorText: {
-    fontFamily: 'Oswald_400Regular',
-    fontSize: 12,
-    color: '#B01020',
-    letterSpacing: 0.3,
-    marginTop: 6,
-  },
-
-  cta: {
-    marginHorizontal: 28,
-    marginBottom: 20,
-    paddingVertical: 14,
-    backgroundColor: Colors.accent,
-    borderRadius: 10,
-    alignItems: 'center',
-  },
-  ctaDisabled: {
-    opacity: 0.4,
-  },
-  ctaText: {
-    fontFamily: 'Oswald_700Bold',
-    fontSize: 16,
-    color: Colors.white,
-    letterSpacing: 1.5,
-  },
-});

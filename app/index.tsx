@@ -227,7 +227,7 @@ export default function MapScreen() {
       {/* Inject hamburger into the Stack header */}
       <Stack.Screen
         options={{
-          title: 'MAP',
+          title: 'BOND',
           headerLeft: () => (
             <Pressable onPress={openDrawer} style={styles.hamburger} hitSlop={10}>
               <View style={styles.bar} />
@@ -325,7 +325,7 @@ export default function MapScreen() {
 
       {/* ── Drawer panel ── */}
       <Animated.View style={[styles.drawer, { paddingTop: insets.top + 20, paddingBottom: insets.bottom + 24 }, drawerStyle]}>
-        <Text style={styles.drawerBrand}>CLASH{'\n'}OF CAMPS</Text>
+        <Text style={styles.drawerBrand}>BOND</Text>
         <View style={styles.drawerDivider} />
 
         {session ? (

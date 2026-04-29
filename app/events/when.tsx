@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
-import { View, StyleSheet, TextInput, Pressable, ScrollView, Animated } from 'react-native';
-import { router } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text } from '@/components/ui/text';
 import { Colors } from '@/constants/theme';
+import { router } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { Pressable, ScrollView, TextInput, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useEventDraft } from './_layout';
+import { eventStyles } from './styles';
 
 // Festival dates: June 27 – July 4, 2026
 const FESTIVAL_DAYS = [
@@ -54,10 +55,10 @@ export default function WhenEventScreen() {
     setMm(value.slice(0, 2));
   }
 
-  const dateSelected = !!data.date;
+  const datesSelected = data.dates.length > 0;
   const timeValid = hh && mm && !timeError;
   const locationOk = data.location_type === 'our_camp' || (data.location_type === 'other' && data.location_name.trim());
-  const canNext = dateSelected && timeValid && locationOk;
+  const canNext = datesSelected && timeValid && locationOk;
 
   function handleNext() {
     if (!canNext) return;
@@ -65,42 +66,52 @@ export default function WhenEventScreen() {
   }
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
+    <View style={[eventStyles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+      <ScrollView style={eventStyles.scroll} contentContainerStyle={eventStyles.scrollContent}>
         {/* Date picker */}
-        <View style={styles.field}>
-          <Text style={styles.label}>Date</Text>
+        <View style={eventStyles.field}>
+          <Text style={eventStyles.title}>Date</Text>
+          <Text style={eventStyles.subtitle}>You can click on multiple dates if they are recurring</Text>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.dayScroll}
+            contentContainerStyle={eventStyles.dayScroll}
           >
-            {FESTIVAL_DAYS.map(({ label, date }) => (
-              <Pressable
-                key={date}
-                style={[styles.dayPill, data.date === date && styles.dayPillSelected]}
-                onPress={() => dispatch({ type: 'SET_FIELD', field: 'date', value: date })}
-              >
-                <Text
-                  style={[
-                    styles.dayPillText,
-                    data.date === date && styles.dayPillTextSelected,
-                  ]}
+            {FESTIVAL_DAYS.map(({ label, date }) => {
+              const isSelected = data.dates.includes(date);
+              return (
+                <Pressable
+                  key={date}
+                  style={[eventStyles.dayPill, isSelected && eventStyles.dayPillSelected]}
+                  onPress={() => {
+                    if (isSelected) {
+                      dispatch({ type: 'SET_DATES', dates: data.dates.filter((d) => d !== date) });
+                    } else {
+                      dispatch({ type: 'SET_DATES', dates: [...data.dates, date] });
+                    }
+                  }}
                 >
-                  {label}
-                </Text>
-              </Pressable>
-            ))}
+                  <Text
+                    style={[
+                      eventStyles.dayPillText,
+                      isSelected && eventStyles.dayPillTextSelected,
+                    ]}
+                  >
+                    {label}
+                  </Text>
+                </Pressable>
+              );
+            })}
           </ScrollView>
         </View>
 
         {/* Time picker */}
-        <View style={styles.field}>
-          <Text style={styles.label}>Time</Text>
-          <View style={styles.timePicker}>
-            <View style={styles.timeInput}>
+        <View style={eventStyles.field}>
+          <Text style={eventStyles.title}>Time</Text>
+          <View style={eventStyles.timePicker}>
+            <View style={eventStyles.timeInput}>
               <TextInput
-                style={styles.input}
+                style={eventStyles.inputLarge}
                 placeholder="HH"
                 placeholderTextColor={Colors.textSecondary}
                 value={hh}
@@ -109,10 +120,10 @@ export default function WhenEventScreen() {
                 maxLength={2}
               />
             </View>
-            <Text style={styles.timeSeparator}>:</Text>
-            <View style={styles.timeInput}>
+            <Text style={eventStyles.timeSeparator}>:</Text>
+            <View style={eventStyles.timeInput}>
               <TextInput
-                style={styles.input}
+                style={eventStyles.inputLarge}
                 placeholder="MM"
                 placeholderTextColor={Colors.textSecondary}
                 value={mm}
@@ -122,17 +133,17 @@ export default function WhenEventScreen() {
               />
             </View>
           </View>
-          {timeError && <Text style={styles.errorText}>{timeError}</Text>}
+          {timeError && <Text style={eventStyles.errorText}>{timeError}</Text>}
         </View>
 
         {/* Location */}
-        <View style={styles.field}>
-          <Text style={styles.label}>Location</Text>
-          <View style={styles.locationPills}>
+        <View style={eventStyles.field}>
+          <Text style={eventStyles.title}>Location</Text>
+          <View style={eventStyles.locationPills}>
             <Pressable
               style={[
-                styles.locationPill,
-                data.location_type === 'our_camp' && styles.locationPillSelected,
+                eventStyles.locationPill,
+                data.location_type === 'our_camp' && eventStyles.locationPillSelected,
               ]}
               onPress={() => {
                 dispatch({ type: 'SET_FIELD', field: 'location_type', value: 'our_camp' });
@@ -142,8 +153,8 @@ export default function WhenEventScreen() {
             >
               <Text
                 style={[
-                  styles.locationPillText,
-                  data.location_type === 'our_camp' && styles.locationPillTextSelected,
+                  eventStyles.locationPillText,
+                  data.location_type === 'our_camp' && eventStyles.locationPillTextSelected,
                 ]}
               >
                 Our Camp
@@ -151,15 +162,15 @@ export default function WhenEventScreen() {
             </Pressable>
             <Pressable
               style={[
-                styles.locationPill,
-                data.location_type === 'other' && styles.locationPillSelected,
+                eventStyles.locationPill,
+                data.location_type === 'other' && eventStyles.locationPillSelected,
               ]}
               onPress={() => dispatch({ type: 'SET_FIELD', field: 'location_type', value: 'other' })}
             >
               <Text
                 style={[
-                  styles.locationPillText,
-                  data.location_type === 'other' && styles.locationPillTextSelected,
+                  eventStyles.locationPillText,
+                  data.location_type === 'other' && eventStyles.locationPillTextSelected,
                 ]}
               >
                 Other location
@@ -169,9 +180,9 @@ export default function WhenEventScreen() {
 
           {/* Location name input */}
           {data.location_type === 'other' && (
-            <View style={styles.locationNameContainer}>
+            <View style={eventStyles.locationNameContainer}>
               <TextInput
-                style={[styles.input, locationNameError && styles.inputError]}
+                style={[eventStyles.input, locationNameError && eventStyles.inputError]}
                 placeholder="e.g. Apollo stage hill"
                 placeholderTextColor={Colors.textSecondary}
                 value={data.location_name}
@@ -181,7 +192,7 @@ export default function WhenEventScreen() {
                 }}
                 maxLength={100}
               />
-              {locationNameError && <Text style={styles.errorText}>{locationNameError}</Text>}
+              {locationNameError && <Text style={eventStyles.errorText}>{locationNameError}</Text>}
             </View>
           )}
         </View>
@@ -189,148 +200,12 @@ export default function WhenEventScreen() {
 
       {/* CTA */}
       <Pressable
-        style={[styles.cta, !canNext && styles.ctaDisabled]}
+        style={[eventStyles.cta, !canNext && eventStyles.ctaDisabled]}
         onPress={handleNext}
         disabled={!canNext}
       >
-        <Text style={styles.ctaText}>NEXT →</Text>
+        <Text style={eventStyles.ctaText}>NEXT →</Text>
       </Pressable>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
-  scroll: { flex: 1 },
-  scrollContent: {
-    paddingHorizontal: 28,
-    paddingTop: 20,
-  },
-
-  field: {
-    marginBottom: 28,
-  },
-  label: {
-    fontFamily: 'Oswald_700Bold',
-    fontSize: 16,
-    color: Colors.text,
-    letterSpacing: 0.5,
-    marginBottom: 10,
-  },
-
-  // Date pills
-  dayScroll: {
-    gap: 8,
-    paddingRight: 28,
-  },
-  dayPill: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-    backgroundColor: Colors.white,
-  },
-  dayPillSelected: {
-    backgroundColor: Colors.accent,
-    borderColor: Colors.accent,
-  },
-  dayPillText: {
-    fontFamily: 'Oswald_700Bold',
-    fontSize: 13,
-    color: Colors.text,
-    letterSpacing: 0.5,
-  },
-  dayPillTextSelected: {
-    color: Colors.white,
-  },
-
-  // Time picker
-  timePicker: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  timeInput: {
-    flex: 1,
-  },
-  input: {
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-    borderRadius: 10,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 18,
-    color: Colors.text,
-    fontFamily: 'Oswald_700Bold',
-    textAlign: 'center',
-  },
-  inputError: {
-    borderColor: '#B01020',
-  },
-  timeSeparator: {
-    fontFamily: 'Oswald_700Bold',
-    fontSize: 24,
-    color: Colors.text,
-    marginBottom: 8,
-  },
-  errorText: {
-    fontFamily: 'Oswald_400Regular',
-    fontSize: 12,
-    color: '#B01020',
-    letterSpacing: 0.3,
-    marginTop: 6,
-  },
-
-  // Location
-  locationPills: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  locationPill: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 10,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-    backgroundColor: Colors.white,
-    alignItems: 'center',
-  },
-  locationPillSelected: {
-    backgroundColor: Colors.accent,
-    borderColor: Colors.accent,
-  },
-  locationPillText: {
-    fontFamily: 'Oswald_700Bold',
-    fontSize: 13,
-    color: Colors.text,
-    letterSpacing: 0.5,
-  },
-  locationPillTextSelected: {
-    color: Colors.white,
-  },
-  locationNameContainer: {
-    marginTop: 12,
-  },
-
-  cta: {
-    marginHorizontal: 28,
-    marginBottom: 20,
-    paddingVertical: 14,
-    backgroundColor: Colors.accent,
-    borderRadius: 10,
-    alignItems: 'center',
-  },
-  ctaDisabled: {
-    opacity: 0.4,
-  },
-  ctaText: {
-    fontFamily: 'Oswald_700Bold',
-    fontSize: 16,
-    color: Colors.white,
-    letterSpacing: 1.5,
-  },
-});

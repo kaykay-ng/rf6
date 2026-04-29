@@ -1,11 +1,12 @@
-import { useState, useEffect } from 'react';
-import { View, StyleSheet, Pressable, ScrollView, ActivityIndicator, Alert, useWindowDimensions } from 'react-native';
-import { router } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text } from '@/components/ui/text';
 import { Colors } from '@/constants/theme';
 import { supabase } from '@/lib/supabase';
+import { router } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, Pressable, ScrollView, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useEventDraft } from './_layout';
+import { eventStyles } from './styles';
 
 type Camp = {
   id: string;
@@ -47,161 +48,54 @@ export default function SelectCampScreen() {
   }
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
-        <Text style={styles.title}>Select Your Camp</Text>
-        <Text style={styles.subtitle}>Choose your camp to create an event</Text>
+    <View style={[eventStyles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+      <ScrollView style={eventStyles.scroll} contentContainerStyle={eventStyles.scrollContent}>
+        <Text style={eventStyles.title}>Select Your Camp</Text>
+        <Text style={eventStyles.subtitle}>Choose your camp to create an event</Text>
 
         {loading ? (
-          <View style={styles.loadingContainer}>
+          <View style={eventStyles.loadingContainer}>
             <ActivityIndicator size="large" color={Colors.accent} />
           </View>
         ) : camps.length === 0 ? (
-          <Text style={styles.emptyText}>No camps registered yet</Text>
+          <Text style={eventStyles.emptyText}>No camps registered yet</Text>
         ) : (
-          <View style={styles.campList}>
+          <View style={eventStyles.campList}>
             {camps.map((camp) => (
               <Pressable
                 key={camp.id}
                 style={[
-                  styles.campButton,
-                  data.campId === camp.id && styles.campButtonSelected,
+                  eventStyles.campButton,
+                  data.campId === camp.id && eventStyles.campButtonSelected,
                 ]}
                 onPress={() => handleSelectCamp(camp)}
               >
-                <View style={styles.campButtonContent}>
+                <View style={eventStyles.campButtonContent}>
                   <Text
                     style={[
-                      styles.campButtonName,
-                      data.campId === camp.id && styles.campButtonNameSelected,
+                      eventStyles.campButtonName,
+                      data.campId === camp.id && eventStyles.campButtonNameSelected,
                     ]}
                   >
                     {camp.name}
                   </Text>
                   <Text
                     style={[
-                      styles.campButtonAddress,
-                      data.campId === camp.id && styles.campButtonAddressSelected,
+                      eventStyles.campButtonAddress,
+                      data.campId === camp.id && eventStyles.campButtonAddressSelected,
                     ]}
                   >
                     {camp.address}
                   </Text>
                 </View>
                 {data.campId === camp.id && (
-                  <Text style={styles.checkmark}>✓</Text>
+                  <Text style={eventStyles.checkmark}>✓</Text>
                 )}
               </Pressable>
             ))}
           </View>
         )}
       </ScrollView>
-
-      {/* Info */}
-      <View style={styles.infoBox}>
-        <Text style={styles.infoText}>You'll verify your camp PIN on the next step</Text>
-      </View>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
-  scroll: { flex: 1 },
-  scrollContent: {
-    paddingHorizontal: 28,
-    paddingTop: 20,
-  },
-
-  title: {
-    fontFamily: 'Oswald_700Bold',
-    fontSize: 28,
-    color: Colors.text,
-    letterSpacing: 0.5,
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontFamily: 'Oswald_400Regular',
-    fontSize: 14,
-    color: Colors.textSecondary,
-    letterSpacing: 0.3,
-    marginBottom: 24,
-  },
-
-  loadingContainer: {
-    paddingVertical: 60,
-    alignItems: 'center',
-  },
-  emptyText: {
-    fontFamily: 'Oswald_400Regular',
-    fontSize: 14,
-    color: Colors.textSecondary,
-    textAlign: 'center',
-    paddingVertical: 40,
-  },
-
-  campList: {
-    gap: 10,
-  },
-  campButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-    borderRadius: 10,
-    backgroundColor: Colors.white,
-  },
-  campButtonSelected: {
-    backgroundColor: Colors.accent,
-    borderColor: Colors.accent,
-  },
-  campButtonContent: {
-    flex: 1,
-  },
-  campButtonName: {
-    fontFamily: 'Oswald_700Bold',
-    fontSize: 16,
-    color: Colors.text,
-    letterSpacing: 0.5,
-    marginBottom: 4,
-  },
-  campButtonNameSelected: {
-    color: Colors.white,
-  },
-  campButtonAddress: {
-    fontFamily: 'Oswald_400Regular',
-    fontSize: 12,
-    color: Colors.textSecondary,
-    letterSpacing: 0.3,
-  },
-  campButtonAddressSelected: {
-    color: 'rgba(255, 255, 255, 0.8)',
-  },
-  checkmark: {
-    fontFamily: 'Oswald_700Bold',
-    fontSize: 20,
-    color: Colors.white,
-  },
-
-  infoBox: {
-    marginHorizontal: 28,
-    marginBottom: 20,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    backgroundColor: '#E8F5E9',
-    borderLeftWidth: 4,
-    borderLeftColor: '#4CAF50',
-    borderRadius: 6,
-  },
-  infoText: {
-    fontFamily: 'Oswald_400Regular',
-    fontSize: 12,
-    color: '#2E7D32',
-    letterSpacing: 0.3,
-  },
-});

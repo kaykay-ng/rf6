@@ -1,6 +1,6 @@
-import { View, StyleSheet, Pressable } from 'react-native';
 import { Text } from '@/components/ui/text';
 import { Colors } from '@/constants/theme';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 type Props = { step: number; total: number; onBack: () => void };
 
