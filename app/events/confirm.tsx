@@ -1,51 +1,25 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { View, StyleSheet, TextInput, Pressable, ScrollView, ActivityIndicator, Alert } from 'react-native';
-import { router, useSafeAreaInsets } from 'expo-router';
-import { SHA256 } from 'expo-crypto';
+import { router } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text } from '@/components/ui/text';
 import { Colors } from '@/constants/theme';
-import { useSession } from '@/context/session';
 import { useEventDraft } from './_layout';
 
 export default function ConfirmEventScreen() {
   const insets = useSafeAreaInsets();
-  const { session } = useSession();
   const { data, dispatch, submit } = useEventDraft();
-  const [pin, setPin] = useState('');
-  const [pinError, setPinError] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
-  const canSubmit = pin.length === 6 && !loading && !success;
-
-  // Auto-submit when PIN is complete
-  useEffect(() => {
-    if (pin.length === 6) {
-      handleSubmit();
-    }
-  }, [pin]);
+  const canSubmit = !loading && !success;
 
   async function handleSubmit() {
-    if (!session?.pinHash) {
-      Alert.alert('Error', 'Session invalid. Please log in again.');
-      return;
-    }
-
     setLoading(true);
-    setPinError('');
 
     try {
-      // Verify PIN matches stored hash
-      const pinHash = await SHA256(pin);
-      if (pinHash !== session.pinHash) {
-        setPinError('Incorrect PIN — try again.');
-        setPin('');
-        setLoading(false);
-        return;
-      }
-
       // Submit event
-      await submit(pinHash);
+      await submit();
 
       // Show success state
       setSuccess(true);
@@ -72,6 +46,22 @@ export default function ConfirmEventScreen() {
   return (
     <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
+        {/* Event summary */}
+        <View style={styles.summaryBox}>
+          <Text style={styles.summaryTitle}>Event Summary</Text>
+          <Text style={styles.summaryField}><Text style={styles.summaryLabel}>Name:</Text> {data.name}</Text>
+          <Text style={styles.summaryField}><Text style={styles.summaryLabel}>Date:</Text> {data.date}</Text>
+          <Text style={styles.summaryField}><Text style={styles.summaryLabel}>Time:</Text> {data.time}</Text>
+          {data.location_type === 'other' ? (
+            <Text style={styles.summaryField}><Text style={styles.summaryLabel}>Location:</Text> {data.location_name}</Text>
+          ) : (
+            <Text style={styles.summaryField}><Text style={styles.summaryLabel}>Location:</Text> Our Camp</Text>
+          )}
+          {data.description && (
+            <Text style={styles.summaryField}><Text style={styles.summaryLabel}>Description:</Text> {data.description}</Text>
+          )}
+        </View>
+
         {/* Max capacity */}
         <View style={styles.field}>
           <Text style={styles.label}>Max attendees (optional)</Text>
@@ -84,25 +74,6 @@ export default function ConfirmEventScreen() {
             keyboardType="number-pad"
             maxLength={4}
           />
-        </View>
-
-        {/* PIN entry */}
-        <View style={styles.field}>
-          <Text style={styles.label}>Camp PIN</Text>
-          <TextInput
-            style={[styles.input, styles.pinInput, pinError && styles.inputError]}
-            placeholder="000000"
-            placeholderTextColor={Colors.textSecondary}
-            value={pin}
-            onChangeText={(v) => {
-              setPin(v);
-              setPinError('');
-            }}
-            keyboardType="number-pad"
-            secureTextEntry
-            maxLength={6}
-          />
-          {pinError && <Text style={styles.errorText}>{pinError}</Text>}
         </View>
 
         {/* Loading indicator */}
@@ -140,6 +111,32 @@ const styles = StyleSheet.create({
     paddingTop: 20,
   },
 
+  summaryBox: {
+    backgroundColor: Colors.white,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    padding: 16,
+    marginBottom: 28,
+  },
+  summaryTitle: {
+    fontFamily: 'Oswald_700Bold',
+    fontSize: 16,
+    color: Colors.text,
+    letterSpacing: 0.5,
+    marginBottom: 12,
+  },
+  summaryField: {
+    fontFamily: 'Oswald_400Regular',
+    fontSize: 14,
+    color: Colors.text,
+    letterSpacing: 0.3,
+    marginBottom: 8,
+  },
+  summaryLabel: {
+    fontFamily: 'Oswald_700Bold',
+  },
+
   field: {
     marginBottom: 28,
   },
@@ -160,22 +157,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.text,
     fontFamily: 'Oswald_400Regular',
-  },
-  inputError: {
-    borderColor: '#B01020',
-  },
-  pinInput: {
-    fontSize: 28,
-    fontFamily: 'Oswald_700Bold',
-    letterSpacing: 10,
-    textAlign: 'center',
-  },
-  errorText: {
-    fontFamily: 'Oswald_400Regular',
-    fontSize: 12,
-    color: '#B01020',
-    letterSpacing: 0.3,
-    marginTop: 6,
   },
 
   loadingContainer: {

@@ -1,12 +1,12 @@
 import { createContext, useContext, useReducer, ReactNode } from 'react';
 import { Stack } from 'expo-router';
 import { supabase } from '@/lib/supabase';
-import { useSession } from '@/context/session';
-import { SHA256 } from 'expo-crypto';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 export type EventDraft = {
+  campId: string;         // camp.id (UUID)
+  campAddress: string;    // camp.address (e.g. 'C5-3')
   name: string;
   description: string;
   date: string;           // ISO '2026-06-28'
@@ -21,6 +21,8 @@ type Action =
   | { type: 'RESET' };
 
 const initialState: EventDraft = {
+  campId: '',
+  campAddress: '',
   name: '',
   description: '',
   date: '',
@@ -46,7 +48,7 @@ function reducer(state: EventDraft, action: Action): EventDraft {
 type EventContextType = {
   data: EventDraft;
   dispatch: (action: Action) => void;
-  submit: (pinHash: string) => Promise<void>;
+  submit: () => Promise<void>;
 };
 
 const EventContext = createContext<EventContextType | undefined>(undefined);
@@ -62,11 +64,10 @@ export function useEventDraft() {
 type Props = { children: ReactNode };
 
 function EventDraftProvider({ children }: Props) {
-  const { session } = useSession();
   const [data, dispatch] = useReducer(reducer, initialState);
 
-  async function submit(pinHash: string) {
-    if (!session) throw new Error('Not logged in');
+  async function submit() {
+    if (!data.campAddress) throw new Error('Camp not selected');
 
     const capacity = data.max_capacity ? parseInt(data.max_capacity, 10) : null;
 
@@ -76,7 +77,7 @@ function EventDraftProvider({ children }: Props) {
       time: data.time,
       location_type: data.location_type,
       location_name: data.location_type === 'other' ? data.location_name.trim() : null,
-      host_camp_id: session.address,
+      host_camp_id: data.campAddress,
       description: data.description.trim() || null,
       max_capacity: capacity,
     });
@@ -102,6 +103,8 @@ export default function EventsLayout() {
           title: 'Add Event',
         }}
       >
+        <Stack.Screen name="select" options={{ title: 'Select Your Camp' }} />
+        <Stack.Screen name="pin" options={{ title: 'Verify Camp PIN' }} />
         <Stack.Screen name="new" options={{ title: 'Event Details' }} />
         <Stack.Screen name="when" options={{ title: 'When & Where' }} />
         <Stack.Screen name="confirm" options={{ title: 'Confirm & Submit' }} />

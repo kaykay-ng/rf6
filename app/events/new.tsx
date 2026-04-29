@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { View, StyleSheet, TextInput, Pressable, ScrollView, useWindowDimensions } from 'react-native';
-import { router, useSafeAreaInsets } from 'expo-router';
+import { router } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text } from '@/components/ui/text';
 import { Colors } from '@/constants/theme';
 import { useEventDraft } from './_layout';

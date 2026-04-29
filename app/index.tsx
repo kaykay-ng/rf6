@@ -8,7 +8,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { CommonGroundMap, type Camp } from '@/components/common-ground-map';
 import { CampSheet, type CampEvent } from '@/components/camp-sheet';
-import { MOCK_EVENTS, hasActiveEvent } from '@/data/mock-events';
+import { MOCK_EVENTS } from '@/data/mock-events';
 import { ZONES } from '@/data/grid';
 import { Colors } from '@/constants/theme';
 import { Text } from '@/components/ui/text';
@@ -37,6 +37,7 @@ export default function MapScreen() {
   const [camps, setCamps]               = useState<Camp[]>([]);
   const [selectedCamp, setSelectedCamp] = useState<Camp | null>(null);
   const [campEvents, setCampEvents]     = useState<CampEvent[] | null>(null);
+  const [allEvents, setAllEvents]       = useState<CampEvent[]>([]);
   const [activeZone, setActiveZone]     = useState<string | null>(null);
   const [hoveredZoneId, setHoveredZoneId] = useState<string | null>(null);
   const [drawerOpen, setDrawerOpen]     = useState(false);
@@ -47,7 +48,7 @@ export default function MapScreen() {
   // ── Today's events (for sidebar) ─────────────────────────────────────────
   const todaysEvents = useMemo(() => {
     const today = new Date().toISOString().split('T')[0];
-    return MOCK_EVENTS
+    return allEvents
       .filter((e) => e.date === today)
       .sort((a, b) => {
         const liveA = isLiveEvent(a) ? -1 : 1;
@@ -55,24 +56,24 @@ export default function MapScreen() {
         if (liveA !== liveB) return liveA - liveB;
         return `${a.date}T${a.time}`.localeCompare(`${b.date}T${b.time}`);
       });
-  }, []);
+  }, [allEvents]);
 
   // Map camp address → event dot color (via host_camp_id)
   // Only compute once camps are loaded, to avoid flashing coloured dots before data arrives
   const eventColors = useMemo(() => {
     if (camps.length === 0) return {};
     const map: Record<string, string> = {};
-    MOCK_EVENTS.forEach((event, i) => {
+    allEvents.forEach((event, i) => {
       const camp = camps.find((c) => c.address === event.host_camp_id);
       if (camp) {
         map[camp.address] = eventColorForIndex(i);
       }
     });
     return map;
-  }, [camps]);
+  }, [camps, allEvents]);
 
   const getEventColor = (event: CampEvent) => {
-    const idx = MOCK_EVENTS.findIndex((e) => e.id === event.id);
+    const idx = allEvents.findIndex((e) => e.id === event.id);
     return eventColorForIndex(idx);
   };
 
@@ -100,14 +101,39 @@ export default function MapScreen() {
     })));
   }, []);
 
+  const fetchEvents = useCallback(async () => {
+    const { data, error } = await supabase
+      .from('events')
+      .select('id, name, date, time, location_type, location_name, host_camp_id, description, max_capacity');
+
+    if (error) {
+      console.error('Failed to load events:', error);
+      return;
+    }
+    if (!data) return;
+    setAllEvents(data.map(r => ({
+      id: r.id,
+      name: r.name,
+      date: r.date,
+      time: r.time,
+      location_type: r.location_type,
+      location_name: r.location_name,
+      host_camp_id: r.host_camp_id,
+      description: r.description,
+      max_capacity: r.max_capacity,
+    })));
+  }, []);
+
   useEffect(() => {
     fetchCamps();
-  }, [fetchCamps]);
+    fetchEvents();
+  }, [fetchCamps, fetchEvents]);
 
   useFocusEffect(
     useCallback(() => {
       fetchCamps();
-    }, [fetchCamps])
+      fetchEvents();
+    }, [fetchCamps, fetchEvents])
   );
 
   // ── Bottom sheet ──────────────────────────────────────────────────────────
@@ -116,21 +142,21 @@ export default function MapScreen() {
     transform: [{ translateY: withSpring(sheetOffset.value, { damping: 48, stiffness: 320 }) }],
   }));
 
-  // TODO: replace with real Supabase query once events table exists
   const liveEventSlots = useMemo(() => {
     const now = Date.now();
-    const live = MOCK_EVENTS.filter((e) => {
+    const live = allEvents.filter((e) => {
       const start = new Date(`${e.date}T${e.time}:00`).getTime();
       const diffMin = (start - now) / 60_000;
       return diffMin >= -30 && diffMin <= 60;
     });
     return new Set(live.map((e) => e.host_camp_id));
-  }, []);
+  }, [allEvents]);
 
   function handleSelectCamp(camp: Camp) {
     setSelectedCamp(camp);
     setActiveZone(null);
-    setCampEvents(MOCK_EVENTS); // TODO: fetch from Supabase
+    const campEventList = allEvents.filter((e) => e.host_camp_id === camp.address);
+    setCampEvents(campEventList);
     sheetOffset.value = 0;
   }
   function dismissSheet() {
@@ -327,8 +353,6 @@ export default function MapScreen() {
               );
             })()}
             <View style={styles.drawerDivider} />
-            <DrawerItem label="Add an event"  onPress={() => navigate('/events/new')} />
-            <View style={styles.drawerDivider} />
             <DrawerItem label="Log out"        onPress={() => { closeDrawer(); setTimeout(logout, 280); }} />
             <DrawerItem label="Delete camp"    onPress={() => { closeDrawer(); setTimeout(confirmDeleteCamp, 280); }} destructive />
           </>
@@ -341,6 +365,8 @@ export default function MapScreen() {
           </>
         )}
 
+        <View style={styles.drawerDivider} />
+        <DrawerItem label="Add an event"  onPress={() => navigate('/events/select')} />
         <View style={styles.drawerDivider} />
         <DrawerItem label="Scan flag" onPress={() => navigate('/scan-flag')} />
       </Animated.View>

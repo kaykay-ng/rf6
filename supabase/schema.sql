@@ -30,3 +30,31 @@ create policy "Anyone can register a camp"
 
 create policy "Anyone can delete a camp"
   on camps for delete using (true);
+
+create table events (
+  id            uuid primary key default gen_random_uuid(),
+  created_at    timestamptz not null default now(),
+  name          text not null,
+  date          date not null,
+  time          text not null,
+  location_type text not null check (location_type in ('our_camp', 'other')),
+  location_name text,
+  host_camp_id  text not null references camps(address),
+  description   text,
+  max_capacity  int,
+
+  constraint events_name_length       check (char_length(name) >= 3),
+  constraint events_description_length check (char_length(description) <= 500),
+  constraint events_date_range        check (date >= '2026-06-27' and date <= '2026-07-04'),
+  constraint events_time_format       check (time ~ '^([01][0-9]|2[0-3]):[0-5][0-9]$'),
+  constraint events_location_name_req check (location_type = 'other' or location_name is null)
+);
+
+-- Row Level Security
+alter table events enable row level security;
+
+create policy "Anyone can read events"
+  on events for select using (true);
+
+create policy "Anyone can create events"
+  on events for insert with check (true);
