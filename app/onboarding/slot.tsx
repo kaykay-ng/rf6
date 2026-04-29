@@ -81,7 +81,7 @@ export default function OnboardingSlotScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 24 }]}>
-      <StepHeader step={2} total={4} onBack={() => router.back()} />
+      <StepHeader step={2} total={5} onBack={() => router.back()} />
 
       <View style={styles.body}>
         <Text variant="heading" style={styles.title}>Where are you camped?</Text>

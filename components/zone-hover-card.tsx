@@ -30,8 +30,7 @@ export function ZoneHoverCard({ zoneId, camps }: Props) {
                   <View style={styles.flagPlaceholder} />
                 )}
               </View>
-              <Text style={styles.campName} numberOfLines={1}>{camp.name}</Text>
-              <Text style={styles.slotNum}>#{slot}</Text>
+              <Text style={styles.campName}>{camp.name} #{slot}</Text>
             </View>
           );
         })}
@@ -57,22 +56,21 @@ const styles = StyleSheet.create({
     shadowRadius: 16,
     shadowOffset: { width: 0, height: 4 },
     elevation: 10,
-    minWidth: 180,
-    maxWidth: 220,
+    minWidth: 300,
+    maxWidth: 380,
   },
   zoneLabel: {
     fontFamily: 'Oswald_700Bold',
     fontSize: 20,
     letterSpacing: 1,
     color: Colors.text,
-    marginBottom: 10,
+    marginBottom: 12,
   },
-  campList: { gap: 8 },
-  campRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  flagThumb: { width: 20, height: 20, borderRadius: 3, overflow: 'hidden', backgroundColor: Colors.surface, flexShrink: 0 },
-  flagImg: { width: 20, height: 20 },
-  flagPlaceholder: { width: 20, height: 20, backgroundColor: Colors.accent, borderRadius: 3 },
-  campName: { flex: 1, fontFamily: 'Oswald_400Regular', fontSize: 13, color: Colors.text, letterSpacing: 0.3 },
-  slotNum: { fontFamily: 'Oswald_400Regular', fontSize: 11, color: Colors.textSecondary, letterSpacing: 0.3 },
+  campList: { gap: 12 },
+  campRow: { flexDirection: 'column', gap: 8 },
+  flagThumb: { width: '100%', height: 100, borderRadius: 6, overflow: 'hidden', backgroundColor: Colors.surface },
+  flagImg: { width: '100%', height: 100 },
+  flagPlaceholder: { width: '100%', height: 100, backgroundColor: '#e0e0e0', borderRadius: 6 },
+  campName: { fontFamily: 'Oswald_700Bold', fontSize: 15, color: Colors.text, letterSpacing: 0.3 },
   emptyText: { fontFamily: 'Oswald_400Regular', fontSize: 12, color: Colors.textSecondary, fontStyle: 'italic' },
 });

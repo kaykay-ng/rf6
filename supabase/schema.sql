@@ -9,6 +9,7 @@ create table camps (
   bio        text not null default '',
   vibe_tags  text[] not null default '{}',
   pin_hash   text not null,
+  flag_image_url text,
 
   constraint camps_name_unique    unique (name),
   constraint camps_address_unique unique (address),

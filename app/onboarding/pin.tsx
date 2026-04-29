@@ -1,58 +1,38 @@
-import { useState, useEffect } from 'react';
-import { View, TextInput, StyleSheet, Pressable, ActivityIndicator, Keyboard } from 'react-native';
+import { useState, useEffect, useRef } from 'react';
+import { View, TextInput, StyleSheet, Pressable, Keyboard } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { useOnboarding } from '@/context/onboarding';
-import { useSession } from '@/context/session';
 import { StepHeader } from '@/components/ui/step-header';
 import { Text } from '@/components/ui/text';
 import { Colors } from '@/constants/theme';
 
 export default function OnboardingPinScreen() {
   const insets = useSafeAreaInsets();
-  const { data, setPin, submit } = useOnboarding();
-  const { reload } = useSession();
+  const { data, setPin } = useOnboarding();
+  const inputRef = useRef<TextInput>(null);
 
-  const [loading, setLoading] = useState(false);
-  const [error, setError]     = useState('');
   const [pinError, setPinError] = useState(false);
 
-  const canSubmit = data.pin.length === 6 && !loading;
+  const canSubmit = data.pin.length === 6;
 
   useEffect(() => {
     if (data.pin.length === 6) {
+      inputRef.current?.blur();
       Keyboard.dismiss();
     }
   }, [data.pin.length]);
 
   async function handleSubmit() {
     if (!canSubmit) return;
-    setError('');
-    setLoading(true);
-    const result = await submit();
-    setLoading(false);
-
-    if ('error' in result) {
-      if (result.error === 'name_taken') {
-        router.navigate('/onboarding/name');
-        return;
-      }
-      if (result.error === 'address_taken' || result.error === 'address_invalid') {
-        router.navigate('/onboarding/slot');
-        return;
-      }
-      setPinError(true);
-      setError(result.error ?? 'Something went wrong. Please try again.');
-      return;
-    }
-
-    await reload();
-    router.replace('/');
+    inputRef.current?.blur();
+    Keyboard.dismiss();
+    router.push('/onboarding/flag');
   }
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 24 }]}>
-      <StepHeader step={4} total={4} onBack={() => router.back()} />
+      <StepHeader step={4} total={5} onBack={() => router.back()} />
 
       <View style={styles.body}>
         <Text variant="heading" style={styles.title}>Set your camp PIN</Text>
@@ -61,9 +41,10 @@ export default function OnboardingPinScreen() {
         </Text>
 
         <TextInput
+          ref={inputRef}
           autoFocus
           value={data.pin}
-          onChangeText={(t) => { setPin(t.replace(/[^0-9]/g, '').slice(0, 6)); setError(''); setPinError(false); }}
+          onChangeText={(t) => { setPin(t.replace(/[^0-9]/g, '').slice(0, 6)); setPinError(false); }}
           keyboardType="number-pad"
           maxLength={6}
           secureTextEntry
@@ -71,7 +52,6 @@ export default function OnboardingPinScreen() {
           placeholderTextColor={Colors.border}
           style={[styles.pinInput, pinError && styles.pinInputError, { outlineStyle: 'none' } as any]}
         />
-        {error ? <Text style={styles.error}>{error}</Text> : null}
       </View>
 
       <Pressable
@@ -79,10 +59,7 @@ export default function OnboardingPinScreen() {
         onPress={handleSubmit}
         disabled={!canSubmit}
       >
-        {loading
-          ? <ActivityIndicator color={Colors.white} />
-          : <Text style={styles.doneBtnText}>DONE — SEE THE MAP</Text>
-        }
+        <Text style={styles.doneBtnText}>CONTINUE</Text>
       </Pressable>
     </View>
   );

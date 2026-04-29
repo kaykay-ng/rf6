@@ -10,9 +10,10 @@ type State = {
   bio: string;
   vibeTags: string[];
   pin: string;
+  imageUri: string;
 };
 
-const initial: State = { name: '', address: '', bio: '', vibeTags: [], pin: '' };
+const initial: State = { name: '', address: '', bio: '', vibeTags: [], pin: '', imageUri: '' };
 
 type Action =
   | { type: 'SET_NAME';      name: string }
@@ -20,6 +21,7 @@ type Action =
   | { type: 'SET_BIO';       bio: string }
   | { type: 'SET_VIBE_TAGS'; vibeTags: string[] }
   | { type: 'SET_PIN';       pin: string }
+  | { type: 'SET_IMAGE_URI'; imageUri: string }
   | { type: 'RESET' };
 
 function reducer(state: State, action: Action): State {
@@ -29,6 +31,7 @@ function reducer(state: State, action: Action): State {
     case 'SET_BIO':       return { ...state, bio: action.bio };
     case 'SET_VIBE_TAGS': return { ...state, vibeTags: action.vibeTags };
     case 'SET_PIN':       return { ...state, pin: action.pin };
+    case 'SET_IMAGE_URI': return { ...state, imageUri: action.imageUri };
     case 'RESET':         return initial;
   }
 }
@@ -41,8 +44,9 @@ type Ctx = {
   setBio:      (bio: string) => void;
   setVibeTags: (tags: string[]) => void;
   setPin:      (pin: string) => void;
+  setImageUri: (uri: string) => void;
   reset:       () => void;
-  submit:      () => Promise<{ campId: string } | { error: string }>;
+  submit:      (overrideImageUri?: string) => Promise<{ campId: string } | { error: string }>;
 };
 
 const OnboardingContext = createContext<Ctx | null>(null);
@@ -50,7 +54,7 @@ const OnboardingContext = createContext<Ctx | null>(null);
 export function OnboardingProvider({ children }: { children: ReactNode }) {
   const [data, dispatch] = useReducer(reducer, initial);
 
-  async function submit(): Promise<{ campId: string } | { error: string }> {
+  async function submit(overrideImageUri?: string): Promise<{ campId: string } | { error: string }> {
     const pinHash = await Crypto.digestStringAsync(
       Crypto.CryptoDigestAlgorithm.SHA256,
       data.pin,
@@ -58,11 +62,12 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
     const { data: row, error } = await supabase
       .from('camps')
       .insert({
-        name:      data.name.trim(),
-        address:   data.address,
-        bio:       data.bio.trim(),
-        vibe_tags: data.vibeTags,
-        pin_hash:  pinHash,
+        name:           data.name.trim(),
+        address:        data.address,
+        bio:            data.bio.trim(),
+        vibe_tags:      data.vibeTags,
+        pin_hash:       pinHash,
+        flag_image_url: overrideImageUri ?? (data.imageUri || null),
       })
       .select('id')
       .single();
@@ -91,6 +96,7 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
       setBio:      (bio)       => dispatch({ type: 'SET_BIO',       bio }),
       setVibeTags: (vibeTags)  => dispatch({ type: 'SET_VIBE_TAGS', vibeTags }),
       setPin:      (pin)       => dispatch({ type: 'SET_PIN',       pin }),
+      setImageUri: (imageUri)  => dispatch({ type: 'SET_IMAGE_URI', imageUri }),
       reset:       ()          => dispatch({ type: 'RESET' }),
       submit,
     }}>

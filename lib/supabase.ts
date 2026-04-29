@@ -12,5 +12,6 @@ export type CampRow = {
   bio: string;
   vibe_tags: string[];
   pin_hash: string;
+  flag_image_url?: string;
   created_at: string;
 };

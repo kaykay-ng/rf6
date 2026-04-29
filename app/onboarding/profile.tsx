@@ -27,7 +27,7 @@ export default function OnboardingProfileScreen() {
   return (
     <View style={[styles.container, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 24 }]}>
       <View style={styles.header}>
-        <StepHeader step={3} total={4} onBack={() => router.back()} />
+        <StepHeader step={3} total={5} onBack={() => router.back()} />
       </View>
 
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>

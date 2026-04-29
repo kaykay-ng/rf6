@@ -159,12 +159,12 @@ export function CommonGroundMap({ camps, zones, liveEventSlots, eventColors, con
       const cellH = ZONE_H - 6;
       const colW = cellW / cols;
       const rowH = cellH / rows;
-      const hitRadius = 8;
 
       for (let campIdx = 0; campIdx < zoneCamps.length; campIdx++) {
         const col = campIdx % cols;
         const row = Math.floor(campIdx / cols);
         const dotSize = Math.max(4, (CAMP_BS - 1) + (10 - n) * 0.4);
+        const hitRadius = dotSize / 2 + 2.5;
         const campX = zone.x + 2 + col * colW + colW / 2;
         const campY = zone.y + 2 + row * rowH + rowH / 2;
         const dist = Math.sqrt((svgX - campX) ** 2 + (svgY - campY) ** 2);
@@ -242,6 +242,13 @@ export function CommonGroundMap({ camps, zones, liveEventSlots, eventColors, con
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [findZoneAt, findCampAt, onZoneChange]);
 
+  const handleMouseLeave = useCallback(() => {
+    setOverCamp(false);
+    setHoveredZoneId(null);
+    onZoneChange?.(null);
+    onHoverZone?.(null);
+  }, [onZoneChange, onHoverZone]);
+
   // ── Gestures ──────────────────────────────────────────────────────────────
   const pan = Gesture.Pan()
     .minPointers(1).maxPointers(1)
@@ -294,7 +301,7 @@ export function CommonGroundMap({ camps, zones, liveEventSlots, eventColors, con
           shContainerH.value = h;
           setContainerHeight(h);
         }}
-        {...(Platform.OS === 'web' ? { onWheel: handleWheel, onClick: handleClick, onMouseMove: handleMouseMove } : {})}
+        {...(Platform.OS === 'web' ? { onWheel: handleWheel, onClick: handleClick, onMouseMove: handleMouseMove, onMouseLeave: handleMouseLeave } : {})}
       >
       <Animated.View
         style={[{ width: svgW, height: svgH, marginLeft: -(svgW - width) / 2 }, animStyle]}

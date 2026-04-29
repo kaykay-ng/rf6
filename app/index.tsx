@@ -1,6 +1,7 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { View, StyleSheet, Platform, Pressable, Alert, useWindowDimensions } from 'react-native';
-import { Stack, router } from 'expo-router';
+import { Image } from 'expo-image';
+import { Stack, router, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   useSharedValue, useAnimatedStyle, withSpring, withTiming,
@@ -72,21 +73,35 @@ export default function MapScreen() {
     return camps.find((c) => c.address === event.host_camp_id)?.name;
   };
 
-  useEffect(() => {
-    supabase
+  const fetchCamps = useCallback(async () => {
+    const { data, error } = await supabase
       .from('camps')
-      .select('id, name, address, vibe_tags, bio')
-      .then(({ data }) => {
-        if (!data) return;
-        setCamps(data.map(r => ({
-          id:      r.id,
-          name:    r.name,
-          address: r.address,
-          vibes:   r.vibe_tags,
-          bio:     r.bio,
-        })));
-      });
+      .select('id, name, address, vibe_tags, bio, flag_image_url');
+
+    if (error) {
+      console.error('Failed to load camps:', error);
+      return;
+    }
+    if (!data) return;
+    setCamps(data.map(r => ({
+      id:        r.id,
+      name:      r.name,
+      address:   r.address,
+      vibes:     r.vibe_tags,
+      bio:       r.bio,
+      imageUri:  r.flag_image_url || undefined,
+    })));
   }, []);
+
+  useEffect(() => {
+    fetchCamps();
+  }, [fetchCamps]);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchCamps();
+    }, [fetchCamps])
+  );
 
   // ── Bottom sheet ──────────────────────────────────────────────────────────
   const sheetOffset = useSharedValue(SHEET_HIDDEN);
@@ -157,6 +172,7 @@ export default function MapScreen() {
   const backdropStyle = useAnimatedStyle(() => ({ opacity: backdropAlpha.value }));
 
   function openDrawer() {
+    fetchCamps();
     setDrawerOpen(true);
     drawerX.value       = withSpring(0,   { damping: 48, stiffness: 320 });
     backdropAlpha.value = withTiming(0.45, { duration: 220 });
@@ -283,6 +299,26 @@ export default function MapScreen() {
           <>
             <Text style={styles.drawerCampName}>{session.campName}</Text>
             <Text style={styles.drawerCampAddress}>{session.address}</Text>
+            {(() => {
+              const userCamp = camps.find(c => c.id === session.campId);
+              if (!userCamp || !userCamp.imageUri) {
+                return <View style={styles.drawerFlagPlaceholder} />;
+              }
+              return Platform.OS === 'web' ? (
+                <img
+                  src={userCamp.imageUri}
+                  style={{ width: '100%', height: 140, borderRadius: 8, marginBottom: 16, objectFit: 'contain' } as any}
+                  alt="Camp flag"
+                />
+              ) : (
+                <Image
+                  source={{ uri: userCamp.imageUri }}
+                  style={styles.drawerFlagImage}
+                  contentFit="contain"
+                  cachePolicy="memory-disk"
+                />
+              );
+            })()}
             <View style={styles.drawerDivider} />
             <DrawerItem label="Add an event"  onPress={() => navigate('/events/new')} />
             <View style={styles.drawerDivider} />
@@ -295,6 +331,9 @@ export default function MapScreen() {
             <DrawerItem label="Log in"              onPress={() => navigate('/login')}   />
           </>
         )}
+
+        <View style={styles.drawerDivider} />
+        <DrawerItem label="Scan flag" onPress={() => navigate('/scan-flag')} />
       </Animated.View>
     </View>
   );
@@ -369,7 +408,9 @@ const styles = StyleSheet.create({
   },
   drawerDivider: { height: 1, backgroundColor: Colors.border, marginBottom: 16 },
   drawerCampName:    { fontFamily: 'Oswald_700Bold', fontSize: 20, color: Colors.text, marginBottom: 2 },
-  drawerCampAddress: { fontFamily: 'Oswald_400Regular', fontSize: 13, color: Colors.textSecondary, letterSpacing: 0.5, marginBottom: 20 },
+  drawerCampAddress: { fontFamily: 'Oswald_400Regular', fontSize: 13, color: Colors.textSecondary, letterSpacing: 0.5, marginBottom: 12 },
+  drawerFlagImage: { width: '100%', height: 140, borderRadius: 8, marginBottom: 16 },
+  drawerFlagPlaceholder: { width: '100%', height: 140, borderRadius: 8, backgroundColor: '#e0e0e0', marginBottom: 16 },
   drawerItem:        { paddingVertical: 14 },
   drawerItemPressed: { opacity: 0.5 },
   drawerItemText:        { fontFamily: 'Oswald_400Regular', fontSize: 18, color: Colors.text, letterSpacing: 0.5 },

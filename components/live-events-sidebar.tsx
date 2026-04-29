@@ -39,6 +39,7 @@ export function LiveEventsSidebar({ events, getEventColor, getHostCampName, onEv
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 16 }]}>
+
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.title}>WHAT'S ON{'\n'}TODAY</Text>
