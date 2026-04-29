@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { View, StyleSheet, TextInput, Pressable, ScrollView, Animated } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -23,13 +23,12 @@ export default function WhenEventScreen() {
   const { data, dispatch } = useEventDraft();
   const [timeError, setTimeError] = useState('');
   const [locationNameError, setLocationNameError] = useState('');
+  const [hh, setHh] = useState(data.time.split(':')[0] || '');
+  const [mm, setMm] = useState(data.time.split(':')[1] || '');
 
-  const hh = data.time.split(':')[0] || '';
-  const mm = data.time.split(':')[1] || '';
-
-  function setTime(hour: string, minute: string) {
-    const h = hour.padStart(2, '0');
-    const m = minute.padStart(2, '0');
+  useEffect(() => {
+    const h = hh.padStart(2, '0');
+    const m = mm.padStart(2, '0');
     setTimeError('');
 
     if (h && m) {
@@ -43,16 +42,16 @@ export default function WhenEventScreen() {
         setTimeError('Minute must be 0–59');
         return;
       }
+      dispatch({ type: 'SET_FIELD', field: 'time', value: `${h}:${m}` });
     }
-    dispatch({ type: 'SET_FIELD', field: 'time', value: `${h}:${m}` });
-  }
+  }, [hh, mm, dispatch]);
 
   function handleHourChange(value: string) {
-    setTime(value, mm);
+    setHh(value.slice(0, 2));
   }
 
   function handleMinuteChange(value: string) {
-    setTime(hh, value);
+    setMm(value.slice(0, 2));
   }
 
   const dateSelected = !!data.date;
