@@ -71,7 +71,7 @@ function EventDraftProvider({ children }: Props) {
 
     const capacity = data.max_capacity ? parseInt(data.max_capacity, 10) : null;
 
-    await supabase.from('events').insert({
+    const { error } = await supabase.from('events').insert({
       name: data.name.trim(),
       date: data.date,
       time: data.time,
@@ -82,6 +82,7 @@ function EventDraftProvider({ children }: Props) {
       max_capacity: capacity,
     });
 
+    if (error) throw error;
     dispatch({ type: 'RESET' });
   }
 
