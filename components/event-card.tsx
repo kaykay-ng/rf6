@@ -9,7 +9,8 @@ export type CampEvent = {
   name: string;
   date: string;          // ISO e.g. '2026-06-28'
   time: string;           // e.g. '18:00'
-  location_type: 'our_camp' | 'nearby' | 'tbd';
+  location_type: 'our_camp' | 'nearby' | 'tbd' | 'other';
+  location_name?: string; // free text location e.g. 'Apollo stage hill'
   host_camp_id: string;    // camp address, e.g. 'C5-3'
   description?: string;
   max_capacity?: number;
