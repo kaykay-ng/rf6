@@ -334,8 +334,10 @@ export default function MapScreen() {
           </>
         ) : (
           <>
-            <DrawerItem label="Register your camp" onPress={() => navigate('/welcome')} />
-            <DrawerItem label="Log in"              onPress={() => navigate('/login')}   />
+            {Platform.OS !== 'web' && (
+              <DrawerItem label="Register your camp" onPress={() => navigate('/welcome')} />
+            )}
+            <DrawerItem label="Log in" onPress={() => navigate('/login')} />
           </>
         )}
 

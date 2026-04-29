@@ -1,6 +1,7 @@
 import { type Camp } from '@/components/common-ground-map';
 import { Text } from '@/components/ui/text';
 import { Colors } from '@/constants/theme';
+import { Image } from 'expo-image';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { type CampEvent, isLiveEvent } from './event-card';
 
@@ -43,6 +44,20 @@ export function CampSheet({ camp, events, paddingBottom, onDismiss }: Props) {
           contentContainerStyle={[styles.scrollContent, { paddingBottom: paddingBottom + 8 }]}
           showsVerticalScrollIndicator={false}
         >
+          {/* Flag hero */}
+          {!!camp.imageUri && (
+            <Image
+              source={{ uri: camp.imageUri }}
+              style={styles.flagHero}
+              contentFit="cover"
+            />
+          )}
+
+          {/* Camp name below hero */}
+          {!!camp.imageUri && (
+            <Text style={styles.campNameBelow}>{camp.name}</Text>
+          )}
+
           {/* Vibe pills */}
           <View style={styles.vibes}>
             {camp.vibes.map((v) => (
@@ -57,12 +72,7 @@ export function CampSheet({ camp, events, paddingBottom, onDismiss }: Props) {
 
           {/* Events */}
           {!!events && events.length > 0 && (
-            <>
-              <View style={styles.eventSectionDivider}>
-                <View style={styles.sectionLine} />
-                <Text style={styles.sectionLabel}>EVENTS</Text>
-                <View style={styles.sectionLine} />
-              </View>
+            <View style={styles.eventsList}>
               {events
                 .filter(e => e.host_camp_id === camp.address)
                 .sort((a, b) => {
@@ -71,34 +81,38 @@ export function CampSheet({ camp, events, paddingBottom, onDismiss }: Props) {
                   return liveA !== liveB ? liveA - liveB : `${a.date}T${a.time}`.localeCompare(`${b.date}T${b.time}`);
                 })
                 .map((event) => (
-                  <View key={event.id} style={styles.eventRow}>
-                    <View style={styles.eventDot} />
-                    <View style={styles.eventInfo}>
-                      <View style={styles.eventTitleRow}>
-                        <Text style={styles.eventName}>{event.name}</Text>
-                        {isLiveEvent(event) && (
-                          <View style={styles.eventBadge}>
-                            <Text style={styles.eventBadgeText}>NOW</Text>
-                          </View>
-                        )}
-                      </View>
-                      <Text style={styles.eventMeta}>
-                        {event.date && event.time ? `${event.date} · ${event.time}` : event.location_type}
-                      </Text>
-                      {!!event.description && (
-                        <Text style={styles.eventDesc}>{event.description}</Text>
-                      )}
-                      {event.max_capacity != null && (
-                        <Text style={styles.eventCapacity}>{event.max_capacity} spots</Text>
-                      )}
-                    </View>
-                  </View>
+                  <EventBoldCard key={event.id} event={event} />
                 ))}
-            </>
+            </View>
           )}
 
         </ScrollView>
 
+      </View>
+    </View>
+  );
+}
+
+// ── EventBoldCard ─────────────────────────────────────────────────────────────
+function EventBoldCard({ event }: { event: CampEvent }) {
+  const isLive = isLiveEvent(event);
+  const dateTimeStr = event.date && event.time ? `${event.date} · ${event.time}` : event.location_type;
+
+  return (
+    <View style={styles.eventCard}>
+      <View style={styles.eventBanner}>
+        {isLive && (
+          <View style={styles.eventNowPill}>
+            <Text style={styles.eventNowText}>NOW</Text>
+          </View>
+        )}
+        <Text style={styles.eventCardName}>{event.name}</Text>
+      </View>
+      <View style={styles.eventCardBody}>
+        <Text style={styles.eventCardMeta}>{dateTimeStr}</Text>
+        {!!event.description && (
+          <Text style={styles.eventCardDesc} numberOfLines={2}>{event.description}</Text>
+        )}
       </View>
     </View>
   );
@@ -216,92 +230,75 @@ const styles = StyleSheet.create({
     marginBottom: 22,
   },
 
-  // ── Section divider ──
-  sectionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginBottom: 14,
+  // ── Flag hero ──
+  flagHero: {
+    width: '100%',
+    height: 200,
+    marginBottom: 16,
   },
-  sectionLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: Colors.border,
-  },
-  sectionLabel: {
+  campNameBelow: {
     fontFamily: 'Oswald_700Bold',
-    fontSize: 11,
-    letterSpacing: 2.5,
-    color: Colors.textSecondary,
+    fontSize: 28,
+    color: Colors.text,
+    marginBottom: 14,
   },
 
   // ── Events ──
-  eventSectionDivider: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  eventsList: {
     gap: 10,
-    marginBottom: 14,
-    marginTop: 4,
+    marginTop: 8,
   },
-  eventRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12,
-    marginBottom: 14,
+  eventCard: {
+    borderRadius: 10,
+    overflow: 'hidden',
+    backgroundColor: Colors.white,
+    borderWidth: 1,
+    borderColor: Colors.border,
   },
-  eventDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+  eventBanner: {
     backgroundColor: Colors.accent,
-    marginTop: 5,
+    paddingHorizontal: 16,
+    paddingVertical: 20,
+    minHeight: 90,
+    justifyContent: 'flex-end',
+    position: 'relative',
   },
-  eventInfo: {
-    flex: 1,
-  },
-  eventTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  eventName: {
-    fontFamily: 'Oswald_700Bold',
-    fontSize: 14,
-    letterSpacing: 0.5,
-    color: Colors.text,
-    flex: 1,
-  },
-  eventBadge: {
-    backgroundColor: Colors.accent,
+  eventNowPill: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    backgroundColor: Colors.white,
     borderRadius: 4,
     paddingHorizontal: 6,
     paddingVertical: 2,
   },
-  eventBadgeText: {
+  eventNowText: {
     fontFamily: 'Oswald_700Bold',
-    fontSize: 9,
-    letterSpacing: 1.5,
+    fontSize: 10,
+    color: Colors.accent,
+    letterSpacing: 0.5,
+  },
+  eventCardName: {
+    fontFamily: 'Oswald_700Bold',
+    fontSize: 20,
     color: Colors.white,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
   },
-  eventMeta: {
+  eventCardBody: {
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    gap: 4,
+  },
+  eventCardMeta: {
     fontFamily: 'Oswald_400Regular',
-    fontSize: 11,
+    fontSize: 12,
     color: Colors.textSecondary,
-    letterSpacing: 0.3,
-    marginTop: 2,
   },
-  eventDesc: {
+  eventCardDesc: {
     fontSize: 12,
     lineHeight: 18,
     color: Colors.textSecondary,
-    marginTop: 4,
-  },
-  eventCapacity: {
-    fontFamily: 'Oswald_400Regular',
-    fontSize: 11,
-    color: Colors.textSecondary,
-    letterSpacing: 0.3,
-    marginTop: 2,
   },
 
   // ── Empty / loading ──

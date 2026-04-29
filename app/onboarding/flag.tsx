@@ -1,16 +1,16 @@
-import { useState } from 'react';
-import { View, StyleSheet, Pressable, ActivityIndicator, Alert, Platform } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Image } from 'expo-image';
-import { router } from 'expo-router';
-import * as FileSystem from 'expo-file-system/legacy';
-import { useOnboarding } from '@/context/onboarding';
-import { useSession } from '@/context/session';
-import { supabase } from '@/lib/supabase';
 import { StepHeader } from '@/components/ui/step-header';
 import { Text } from '@/components/ui/text';
 import { Colors } from '@/constants/theme';
-import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
+import { useOnboarding } from '@/context/onboarding';
+import { useSession } from '@/context/session';
+import { supabase } from '@/lib/supabase';
+import * as FileSystem from 'expo-file-system/legacy';
+import { Image } from 'expo-image';
+import { router } from 'expo-router';
+import { useState } from 'react';
+import { ActivityIndicator, Alert, Platform, Pressable, StyleSheet, View } from 'react-native';
+import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const DocumentScanner = Platform.OS === 'ios' ? require('react-native-document-scanner-plugin').default : null;
 
@@ -98,15 +98,6 @@ export default function OnboardingFlagScreen() {
     }
   }
 
-  function handleSkip() {
-    submit().then(async (result) => {
-      if ('error' in result) {
-        Alert.alert('Error', result.error ?? 'Something went wrong. Please try again.');
-        return;
-      }
-      showSuccessAndNavigate();
-    });
-  }
 
   async function showSuccessAndNavigate() {
     setSuccess(true);
@@ -130,22 +121,26 @@ export default function OnboardingFlagScreen() {
 
   if (success) {
     const isWeb = Platform.OS === 'web';
+    const isMobile = !isWeb;
     return (
-      <View style={[styles.container, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 24 }]}>
-        <View style={styles.successContainer}>
-          <Animated.View style={[styles.checkmark, checkStyle]}>
-            <Text style={styles.checkmarkText}>✓</Text>
+      <View style={[
+        isMobile ? styles.successScreenContainerMobile : styles.successScreenContainerWeb,
+        { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 24 }
+      ]}>
+        <View style={styles.successContent}>
+          <Animated.View style={[styles.checkmark, isMobile && styles.checkmarkMobile, checkStyle]}>
+            <Text style={[styles.checkmarkText, isMobile && styles.checkmarkTextMobile]}>✓</Text>
           </Animated.View>
-          <Text style={styles.successTitle}>Camp registered!</Text>
-          <Text style={styles.successText}>
+          <Text style={[styles.successTitle, isMobile && styles.successTitleMobile]}>Camp registered!</Text>
+          <Text style={[styles.successText, isMobile && styles.successTextMobile]}>
             {isWeb ? `${data.name} is now live on the map. Get ready to clash!` : 'Your camp is now live on the map at our main display.'}
           </Text>
-          {!isWeb && (
-            <Pressable style={styles.registerNextBtn} onPress={handleRegisterNext}>
-              <Text style={styles.registerNextBtnText}>REGISTER NEXT CAMP</Text>
-            </Pressable>
-          )}
         </View>
+        {isMobile && (
+          <Pressable style={styles.registerNextBtn} onPress={handleRegisterNext}>
+            <Text style={styles.registerNextBtnText}>REGISTER NEXT CAMP</Text>
+          </Pressable>
+        )}
       </View>
     );
   }
@@ -154,17 +149,12 @@ export default function OnboardingFlagScreen() {
     <View style={[styles.container, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 24 }]}>
       <View style={styles.headerRow}>
         <StepHeader step={5} total={5} onBack={() => router.back()} />
-        {!data.imageUri && (
-          <Pressable onPress={handleSkip}>
-            <Text style={styles.skipText}>SKIP</Text>
-          </Pressable>
-        )}
       </View>
 
       <View style={styles.body}>
         <Text variant="heading" style={styles.title}>Scan your flag</Text>
         <Text variant="body" style={styles.hint}>
-          Hold your hand-drawn flag still for the camera. We'll clean it up automatically.
+          Represent your camp with your own artwork. Hold your flag still for the camera.
         </Text>
 
         {data.imageUri ? (
@@ -210,13 +200,18 @@ export default function OnboardingFlagScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
-  successContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 28 },
+  successScreenContainerWeb: { flex: 1, backgroundColor: Colors.background, justifyContent: 'center', paddingHorizontal: 28 },
+  successScreenContainerMobile: { flex: 1, backgroundColor: Colors.accent, justifyContent: 'space-between', paddingHorizontal: 28 },
+  successContent: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   checkmark: { width: 80, height: 80, borderRadius: 40, backgroundColor: Colors.accent, justifyContent: 'center', alignItems: 'center', marginBottom: 24 },
+  checkmarkMobile: { backgroundColor: Colors.white },
   checkmarkText: { fontSize: 48, color: Colors.white, fontWeight: 'bold' },
+  checkmarkTextMobile: { color: Colors.accent },
   successTitle: { fontSize: 28, fontFamily: 'Oswald_700Bold', color: Colors.text, marginBottom: 12, textAlign: 'center' },
+  successTitleMobile: { color: Colors.white },
   successText: { fontSize: 16, color: Colors.textSecondary, textAlign: 'center', lineHeight: 24 },
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 28, marginBottom: 24 },
-  skipText: { fontSize: 13, fontFamily: 'Oswald_700Bold', color: Colors.textSecondary, letterSpacing: 1 },
+  successTextMobile: { color: Colors.white },
+  headerRow: { paddingHorizontal: 28, marginBottom: 24 },
   body: { flex: 1, paddingHorizontal: 28 },
   title: { fontSize: 28, marginBottom: 10 },
   hint: { color: Colors.textSecondary, lineHeight: 22, marginBottom: 32 },
@@ -231,6 +226,6 @@ const styles = StyleSheet.create({
   saveBtnText: { fontFamily: 'Oswald_700Bold', fontSize: 14, color: Colors.white, letterSpacing: 1 },
   scanBtn: { backgroundColor: Colors.accent, borderRadius: 10, paddingVertical: 18, alignItems: 'center', marginTop: 32 },
   scanBtnText: { fontFamily: 'Oswald_700Bold', fontSize: 16, color: Colors.white, letterSpacing: 1.5 },
-  registerNextBtn: { backgroundColor: Colors.accent, borderRadius: 10, paddingVertical: 16, alignItems: 'center', marginTop: 32, paddingHorizontal: 28 },
+  registerNextBtn: { paddingVertical: 16, alignItems: 'center', paddingBottom: 0 },
   registerNextBtnText: { fontFamily: 'Oswald_700Bold', fontSize: 16, color: Colors.white, letterSpacing: 1.5 },
 });

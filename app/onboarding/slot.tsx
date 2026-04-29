@@ -1,13 +1,13 @@
-import { useRef, useState } from 'react';
-import { View, TextInput, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
-import { supabase } from '@/lib/supabase';
-import { useOnboarding } from '@/context/onboarding';
 import { StepHeader } from '@/components/ui/step-header';
 import { Text } from '@/components/ui/text';
 import { Colors } from '@/constants/theme';
+import { useOnboarding } from '@/context/onboarding';
 import { parseAddress } from '@/data/grid';
+import { supabase } from '@/lib/supabase';
+import { router } from 'expo-router';
+import { useRef, useState } from 'react';
+import { ActivityIndicator, Keyboard, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 /** After typing 2 digits, auto-advance unless the value could extend to 100. */
 function shouldAutoAdvanceZone(z: string): boolean {
@@ -65,6 +65,7 @@ export default function OnboardingSlotScreen() {
     if (!parsed) return;
     setError('');
     setLoading(true);
+    Keyboard.dismiss();
     const { data: rows } = await supabase
       .from('camps')
       .select('id')
@@ -104,8 +105,6 @@ export default function OnboardingSlotScreen() {
                 autoFocus
                 keyboardType="number-pad"
                 maxLength={3}
-                returnKeyType="next"
-                onSubmitEditing={() => slotRef.current?.focus()}
               />
             </View>
           </View>
@@ -141,13 +140,13 @@ export default function OnboardingSlotScreen() {
       </View>
 
       <Pressable
-        style={[styles.nextBtn, !canNext && styles.nextBtnDisabled]}
+        style={[styles.continueBtn, !canNext && styles.continueBtnDisabled]}
         onPress={handleNext}
         disabled={!canNext}
       >
         {loading
           ? <ActivityIndicator color={Colors.white} />
-          : <Text style={styles.nextBtnText}>NEXT</Text>
+          : <Text style={styles.continueBtnText}>CONTINUE</Text>
         }
       </Pressable>
     </View>
@@ -187,7 +186,7 @@ const styles = StyleSheet.create({
 
   error:           { marginTop: 12, fontSize: 13, color: Colors.accent },
   success:         { marginTop: 12, fontSize: 13, color: '#3a8040', fontWeight: '600' },
-  nextBtn:         { backgroundColor: Colors.accent, borderRadius: 10, paddingVertical: 16, alignItems: 'center' },
-  nextBtnDisabled: { opacity: 0.4 },
-  nextBtnText:     { fontFamily: 'Oswald_700Bold', fontSize: 16, letterSpacing: 1.5, color: Colors.white },
+  continueBtn:         { backgroundColor: Colors.accent, borderRadius: 10, paddingVertical: 16, alignItems: 'center' },
+  continueBtnDisabled: { opacity: 0.4 },
+  continueBtnText:     { fontFamily: 'Oswald_700Bold', fontSize: 16, letterSpacing: 1.5, color: Colors.white },
 });

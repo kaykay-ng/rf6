@@ -1,12 +1,12 @@
-import { useState } from 'react';
-import { View, StyleSheet, Pressable, ActivityIndicator, Alert, Platform } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Image } from 'expo-image';
-import { router } from 'expo-router';
-import * as FileSystem from 'expo-file-system/legacy';
-import { supabase } from '@/lib/supabase';
 import { Text } from '@/components/ui/text';
 import { Colors } from '@/constants/theme';
+import { supabase } from '@/lib/supabase';
+import * as FileSystem from 'expo-file-system/legacy';
+import { Image } from 'expo-image';
+import { router } from 'expo-router';
+import { useState } from 'react';
+import { ActivityIndicator, Alert, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const DocumentScanner = Platform.OS === 'ios' ? require('react-native-document-scanner-plugin').default : null;
 
@@ -97,7 +97,7 @@ export default function ScanFlagScreen() {
         <View style={styles.body}>
           <Text variant="heading" style={styles.title}>Scan your flag</Text>
           <Text variant="body" style={styles.hint}>
-            Hold your hand-drawn flag still for the camera. We'll clean it up automatically.
+            Represent your camp with your own artwork. Hold your flag still for the camera.
           </Text>
 
           {scannedUri ? (

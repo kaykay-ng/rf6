@@ -1,12 +1,12 @@
-import { useState } from 'react';
-import { View, TextInput, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
-import { supabase } from '@/lib/supabase';
-import { useOnboarding } from '@/context/onboarding';
 import { StepHeader } from '@/components/ui/step-header';
 import { Text } from '@/components/ui/text';
 import { Colors } from '@/constants/theme';
+import { useOnboarding } from '@/context/onboarding';
+import { supabase } from '@/lib/supabase';
+import { router } from 'expo-router';
+import { useState } from 'react';
+import { ActivityIndicator, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function OnboardingNameScreen() {
   const insets = useSafeAreaInsets();
@@ -40,13 +40,13 @@ export default function OnboardingNameScreen() {
 
       <View style={styles.body}>
         <Text variant="heading" style={styles.title}>What's your camp called?</Text>
-        <Text variant="body" style={styles.hint}>This is your public identity on the map. Make it memorable.</Text>
+        <Text variant="body" style={styles.hint}>This is the name of your camp in Roskilde Festival</Text>
 
         <TextInput
           style={[styles.input, error ? styles.inputError : null]}
           value={data.name}
           onChangeText={(t) => { setName(t); setError(''); }}
-          placeholder="e.g. Camp Chaos"
+          placeholder="e.g. Camp Surf"
           placeholderTextColor={Colors.border}
           autoFocus
           maxLength={40}

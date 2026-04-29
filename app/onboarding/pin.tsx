@@ -1,11 +1,11 @@
-import { useState, useEffect, useRef } from 'react';
-import { View, TextInput, StyleSheet, Pressable, Keyboard } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
-import { useOnboarding } from '@/context/onboarding';
 import { StepHeader } from '@/components/ui/step-header';
 import { Text } from '@/components/ui/text';
 import { Colors } from '@/constants/theme';
+import { useOnboarding } from '@/context/onboarding';
+import { router } from 'expo-router';
+import { useEffect, useRef, useState } from 'react';
+import { Keyboard, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function OnboardingPinScreen() {
   const insets = useSafeAreaInsets();
@@ -37,7 +37,7 @@ export default function OnboardingPinScreen() {
       <View style={styles.body}>
         <Text variant="heading" style={styles.title}>Set your camp PIN</Text>
         <Text variant="body" style={styles.hint}>
-          Pick a 6-digit PIN your whole camp can use to log back in. Share it verbally — no individual accounts.
+          Pick a 6-digit PIN your whole camp can use to create or register for events. You must remember it in order to use BOND.
         </Text>
 
         <TextInput
@@ -66,8 +66,8 @@ export default function OnboardingPinScreen() {
 }
 
 const styles = StyleSheet.create({
-  container:      { flex: 1, backgroundColor: Colors.background },
-  body:           { flex: 1, paddingHorizontal: 28 },
+  container:      { flex: 1, backgroundColor: Colors.background, paddingHorizontal: 28 },
+  body:           { flex: 1 },
   title:          { fontSize: 28, marginBottom: 10 },
   hint:           { color: Colors.textSecondary, lineHeight: 22, marginBottom: 32 },
   pinInput: {
@@ -78,7 +78,7 @@ const styles = StyleSheet.create({
   },
   pinInputError:  { borderColor: Colors.accent },
   error:          { marginTop: 12, fontSize: 13, color: Colors.accent, textAlign: 'center' },
-  doneBtn:        { marginHorizontal: 28, marginTop: 24, backgroundColor: Colors.accent, borderRadius: 10, paddingVertical: 16, alignItems: 'center' },
+  doneBtn:        { marginTop: 24, backgroundColor: Colors.accent, borderRadius: 10, paddingVertical: 16, alignItems: 'center' },
   doneBtnDisabled:{ opacity: 0.4 },
   doneBtnText:    { fontFamily: 'Oswald_700Bold', fontSize: 16, letterSpacing: 1.5, color: Colors.white },
 });
