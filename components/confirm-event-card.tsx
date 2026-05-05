@@ -43,6 +43,7 @@ export function ConfirmEventCard({
   const [showSuccess, setShowSuccess] = useState(false);
   const [showCampPicker, setShowCampPicker] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [localRegisteredCount, setLocalRegisteredCount] = useState(registeredCount || 0);
 
   // Parse date for display
   const dateObj = new Date(date);
@@ -52,10 +53,9 @@ export function ConfirmEventCard({
     day: 'numeric',
   });
 
-  // Spots left calculation
+  // Spots left calculation using local state for optimistic updates
   const capacity = maxCapacity || 40;
-  const registered = registeredCount || 0;
-  const spotsLeft = capacity - registered;
+  const spotsLeft = capacity - localRegisteredCount;
   const isFull = spotsLeft <= 0;
 
   const handleSignUp = async () => {
@@ -96,8 +96,9 @@ export function ConfirmEventCard({
       if (insertError) throw insertError;
 
       // Update event's registered_count
-      const newRegisteredCount = registered + parseInt(numberOfPeople);
-      console.log('Updating event:', { eventId, newRegisteredCount, registered, numberOfPeople });
+      const numPeople = parseInt(numberOfPeople);
+      const newRegisteredCount = localRegisteredCount + numPeople;
+      console.log('Updating event:', { eventId, newRegisteredCount, localRegisteredCount, numberOfPeople });
 
       const { error: updateError, data: updateData } = await supabase
         .from('events')
@@ -106,6 +107,9 @@ export function ConfirmEventCard({
 
       console.log('Update result:', { error: updateError, data: updateData });
       if (updateError) throw updateError;
+
+      // Optimistic update: immediately update local registered count
+      setLocalRegisteredCount(newRegisteredCount);
 
       setShowSuccess(true);
       setNumberOfPeople('');
