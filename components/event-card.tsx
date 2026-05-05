@@ -14,6 +14,7 @@ export type CampEvent = {
   host_camp_id: string;    // camp address, e.g. 'C5-3'
   description?: string;
   max_capacity?: number;
+  registered_count?: number;
 };
 
 function formatDate(isoDate: string, time: string): string {

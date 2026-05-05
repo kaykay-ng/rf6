@@ -141,11 +141,10 @@ function TimelineRow({ event, color, hostCampName, isLive, isLast, onPress }: {
   // Time display in 24-hour format: "18:00"
   const timeStr = event.time;
 
-  // Calculate spots left (mock: 75% capacity filled)
+  // Spots left (default to max capacity until registration data is available)
   const capacity = event.max_capacity || 40;
-  const progressPercent = 75;
-  const spotsUsed = Math.round((progressPercent / 100) * capacity);
-  const spotsLeft = capacity - spotsUsed;
+  const registered = event.registered_count || 0;
+  const spotsLeft = capacity - registered;
 
   return (
     <Pressable style={({ pressed }) => [styles.row, pressed && styles.rowPressed]} onPress={onPress}>

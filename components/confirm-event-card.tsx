@@ -12,6 +12,7 @@ interface ConfirmEventCardProps {
   time: string;
   location: string;
   maxCapacity?: number;
+  registeredCount?: number;
 }
 
 export function ConfirmEventCard({
@@ -23,6 +24,7 @@ export function ConfirmEventCard({
   time,
   location,
   maxCapacity,
+  registeredCount,
 }: ConfirmEventCardProps) {
   // Parse date for display
   const dateObj = new Date(date);
@@ -32,17 +34,16 @@ export function ConfirmEventCard({
     day: 'numeric',
   });
 
-  // Mock capacity calculation (75% full for visual demo)
+  // Spots left calculation
   const capacity = maxCapacity || 40;
-  const progressPercent = 75;
-  const spotsUsed = Math.round((progressPercent / 100) * capacity);
-  const spotsLeft = capacity - spotsUsed;
+  const registered = registeredCount || 0;
+  const spotsLeft = capacity - registered;
 
   return (
     <View style={styles.card}>
       {/* Spots left ribbon */}
       <View style={styles.ribbon}>
-        <Text style={styles.ribbonText}>{spotsUsed}/{capacity}</Text>
+        <Text style={styles.ribbonText}>{spotsLeft}/{capacity}</Text>
         <Text style={styles.ribbonDescription}>spots left</Text>
       </View>
 
