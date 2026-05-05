@@ -388,40 +388,37 @@ export function CommonGroundMap({ camps, zones, liveEventSlots, eventColors, con
 
         </Svg>
 
-        {/* Overlay layer — live event flags, moves with pan/zoom */}
-        {liveEventSlots && liveEventSlots.size > 0 &&
-          Array.from(liveEventSlots).map((addr) => {
-            const camp = campsByAddress.get(addr);
-            if (!camp) return null;
-            const zone = zones.find(z => z.id === camp.address.split('-')[0]);
-            if (!zone) return null;
-            const zoneCamps = campsByZone.get(zone.id) ?? [];
-            const campIdx = zoneCamps.findIndex(c => c.address === addr);
-            if (campIdx === -1) return null;
-            const n = zoneCamps.length;
-            const cols = Math.min(n, 5);
-            const rows = Math.ceil(n / cols);
-            const col = campIdx % cols;
-            const row = Math.floor(campIdx / cols);
-            const cellW = ZONE_W - 4;
-            const cellH = ZONE_H - 6;
-            const colW = cellW / cols;
-            const rowH = cellH / rows;
-            const dotX = zone.x + 2 + col * colW + colW / 2;
-            const dotY = zone.y + 2 + row * rowH + rowH / 2;
-            const absX = dotX * baseScale;
-            const absY = dotY * baseScale;
-            const overlaySize = Math.max(16, 18 * baseScale);
-            return (
-              <CampOverlay
-                key={addr}
-                imageUri={camp.imageUri}
-                x={absX - overlaySize / 2}
-                y={absY - overlaySize / 2}
-                scale={baseScale}
-              />
-            );
-          })}
+        {/* Overlay layer — camp flags, moves with pan/zoom */}
+        {camps.filter(c => c.imageUri).map((camp) => {
+          const zone = zones.find(z => z.id === camp.address.split('-')[0]);
+          if (!zone) return null;
+          const zoneCamps = campsByZone.get(zone.id) ?? [];
+          const campIdx = zoneCamps.findIndex(c => c.address === camp.address);
+          if (campIdx === -1) return null;
+          const n = zoneCamps.length;
+          const cols = Math.min(n, 5);
+          const rows = Math.ceil(n / cols);
+          const col = campIdx % cols;
+          const row = Math.floor(campIdx / cols);
+          const cellW = ZONE_W - 4;
+          const cellH = ZONE_H - 6;
+          const colW = cellW / cols;
+          const rowH = cellH / rows;
+          const dotX = zone.x + 2 + col * colW + colW / 2;
+          const dotY = zone.y + 2 + row * rowH + rowH / 2;
+          const absX = dotX * baseScale;
+          const absY = dotY * baseScale;
+          const overlaySize = Math.max(16, 18 * baseScale);
+          return (
+            <CampOverlay
+              key={camp.address}
+              imageUri={camp.imageUri}
+              x={absX - overlaySize / 2}
+              y={absY - overlaySize / 2}
+              scale={baseScale}
+            />
+          );
+        })}
 
       </Animated.View>
       </View>
