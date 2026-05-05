@@ -1,9 +1,10 @@
 import { Text } from '@/components/ui/text';
 import { Colors } from '@/constants/theme';
-import { StyleSheet, View, TextInput, Pressable, ActivityIndicator } from 'react-native';
+import { StyleSheet, View, TextInput, Pressable, ActivityIndicator, Modal, ScrollView } from 'react-native';
 import { useState } from 'react';
 import { Icon } from './icon';
 import { supabase } from '@/lib/supabase';
+import { type Camp } from './common-ground-map';
 
 interface ConfirmEventCardProps {
   campName: string;
@@ -16,6 +17,7 @@ interface ConfirmEventCardProps {
   location: string;
   maxCapacity?: number;
   registeredCount?: number;
+  camps?: Camp[];
 }
 
 export function ConfirmEventCard({
@@ -29,6 +31,7 @@ export function ConfirmEventCard({
   location,
   maxCapacity,
   registeredCount,
+  camps = [],
 }: ConfirmEventCardProps) {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [numberOfPeople, setNumberOfPeople] = useState('');
@@ -36,6 +39,7 @@ export function ConfirmEventCard({
   const [campPin, setCampPin] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [showCampPicker, setShowCampPicker] = useState(false);
 
   // Parse date for display
   const dateObj = new Date(date);
@@ -185,14 +189,15 @@ export function ConfirmEventCard({
                   onChangeText={setNumberOfPeople}
                   editable={!isLoading}
                 />
-                <TextInput
+                <Pressable
+                  onPress={() => setShowCampPicker(true)}
+                  disabled={isLoading}
                   style={styles.input}
-                  placeholder="Camp name"
-                  placeholderTextColor={Colors.textSecondary}
-                  value={regCampName}
-                  onChangeText={setRegCampName}
-                  editable={!isLoading}
-                />
+                >
+                  <Text style={regCampName ? styles.campPickerValue : styles.campPickerPlaceholder}>
+                    {regCampName || 'Select camp'}
+                  </Text>
+                </Pressable>
                 <TextInput
                   style={styles.input}
                   placeholder="Camp pin"
@@ -221,6 +226,41 @@ export function ConfirmEventCard({
             )}
           </View>
         )}
+
+        {/* Camp Picker Modal */}
+        <Modal
+          visible={showCampPicker}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowCampPicker(false)}
+        >
+          <Pressable
+            style={styles.modalOverlay}
+            onPress={() => setShowCampPicker(false)}
+          >
+            <View style={styles.campPickerModal}>
+              <Text style={styles.campPickerTitle}>Select Camp</Text>
+              <ScrollView style={styles.campPickerList}>
+                {camps.map((camp) => (
+                  <Pressable
+                    key={camp.address}
+                    onPress={() => {
+                      setRegCampName(camp.name);
+                      setShowCampPicker(false);
+                    }}
+                    style={({ pressed }) => [
+                      styles.campPickerItem,
+                      pressed && styles.campPickerItemPressed,
+                      regCampName === camp.name && styles.campPickerItemSelected,
+                    ]}
+                  >
+                    <Text style={styles.campPickerItemText}>{camp.name}</Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
+            </View>
+          </Pressable>
+        </Modal>
       </View>
     </View>
   );
@@ -431,5 +471,60 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.text,
     letterSpacing: 0.3,
+  },
+
+  // ── Camp Picker ──
+  campPickerPlaceholder: {
+    fontFamily: 'Oswald_400Regular',
+    fontSize: 14,
+    color: Colors.textSecondary,
+  },
+  campPickerValue: {
+    fontFamily: 'Oswald_400Regular',
+    fontSize: 14,
+    color: Colors.text,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  campPickerModal: {
+    backgroundColor: Colors.white,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    maxHeight: '70%',
+    paddingTop: 16,
+    paddingBottom: 32,
+  },
+  campPickerTitle: {
+    fontFamily: 'Barlow_700Bold',
+    fontSize: 18,
+    color: Colors.text,
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  campPickerList: {
+    paddingHorizontal: 16,
+  },
+  campPickerItem: {
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  campPickerItemPressed: {
+    backgroundColor: Colors.background,
+  },
+  campPickerItemSelected: {
+    backgroundColor: Colors.accent,
+    borderColor: Colors.accent,
+  },
+  campPickerItemText: {
+    fontFamily: 'Oswald_400Regular',
+    fontSize: 14,
+    color: Colors.text,
   },
 });

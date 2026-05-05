@@ -279,6 +279,7 @@ export default function MapScreen() {
                 <CampSheet
                   camp={selectedCamp}
                   events={campEvents}
+                  allCamps={camps}
                   paddingBottom={insets.bottom + 16}
                   onDismiss={dismissSheet}
                 />
@@ -309,6 +310,7 @@ export default function MapScreen() {
               <CampSheet
                 camp={selectedCamp}
                 events={campEvents}
+                allCamps={camps}
                 paddingBottom={insets.bottom + 16}
                 onDismiss={dismissSheet}
               />

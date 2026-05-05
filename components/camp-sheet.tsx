@@ -14,11 +14,12 @@ export type { CampEvent } from './event-card';
 type Props = {
   camp: Camp;
   events: CampEvent[] | null;   // null = loading
+  allCamps?: Camp[];
   paddingBottom: number;
   onDismiss: () => void;
 };
 
-export function CampSheet({ camp, events, paddingBottom, onDismiss }: Props) {
+export function CampSheet({ camp, events, allCamps = [], paddingBottom, onDismiss }: Props) {
   return (
     <View style={styles.shadow}>
       <View style={styles.clip}>
@@ -94,6 +95,7 @@ export function CampSheet({ camp, events, paddingBottom, onDismiss }: Props) {
                     location={event.location_type === 'our_camp' ? 'Our Camp' : (event.location_name || 'TBD')}
                     maxCapacity={event.max_capacity}
                     registeredCount={event.registered_count}
+                    camps={allCamps}
                   />
                 ))}
             </View>
