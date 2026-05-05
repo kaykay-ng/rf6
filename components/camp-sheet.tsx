@@ -87,11 +87,13 @@ export function CampSheet({ camp, events, paddingBottom, onDismiss }: Props) {
                     campName={camp.name}
                     campAddress={camp.address}
                     eventName={event.name}
+                    eventId={event.id}
                     description={event.description}
                     date={event.date}
                     time={event.time}
                     location={event.location_type === 'our_camp' ? 'Our Camp' : (event.location_name || 'TBD')}
                     maxCapacity={event.max_capacity}
+                    registeredCount={event.registered_count}
                   />
                 ))}
             </View>

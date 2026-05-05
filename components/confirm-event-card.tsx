@@ -1,12 +1,15 @@
 import { Text } from '@/components/ui/text';
 import { Colors } from '@/constants/theme';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, TextInput, Pressable, ActivityIndicator } from 'react-native';
+import { useState } from 'react';
 import { Icon } from './icon';
+import { supabase } from '@/lib/supabase';
 
 interface ConfirmEventCardProps {
   campName: string;
   campAddress: string;
   eventName: string;
+  eventId?: string;
   description?: string;
   date: string;
   time: string;
@@ -19,6 +22,7 @@ export function ConfirmEventCard({
   campName,
   campAddress,
   eventName,
+  eventId,
   description,
   date,
   time,
@@ -26,6 +30,13 @@ export function ConfirmEventCard({
   maxCapacity,
   registeredCount,
 }: ConfirmEventCardProps) {
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [numberOfPeople, setNumberOfPeople] = useState('');
+  const [regCampName, setRegCampName] = useState('');
+  const [campPin, setCampPin] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+
   // Parse date for display
   const dateObj = new Date(date);
   const dateStr = dateObj.toLocaleDateString('en-US', {
@@ -38,6 +49,39 @@ export function ConfirmEventCard({
   const capacity = maxCapacity || 40;
   const registered = registeredCount || 0;
   const spotsLeft = capacity - registered;
+  const isFull = spotsLeft <= 0;
+
+  const handleSignUp = async () => {
+    if (!numberOfPeople || !regCampName || !campPin || !eventId) return;
+
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.from('registrations').insert([
+        {
+          event_id: eventId,
+          camp_name: regCampName,
+          camp_pin: campPin,
+          number_of_people: parseInt(numberOfPeople),
+          registered_at: new Date().toISOString(),
+        },
+      ]);
+
+      if (error) throw error;
+
+      setShowSuccess(true);
+      setNumberOfPeople('');
+      setRegCampName('');
+      setCampPin('');
+      setTimeout(() => {
+        setIsFormOpen(false);
+        setShowSuccess(false);
+      }, 2000);
+    } catch (err) {
+      console.error('Registration error:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <View style={styles.card}>
@@ -106,6 +150,77 @@ export function ConfirmEventCard({
             </View>
           </View>
         </View>
+
+        {/* Sign Up Button */}
+        <Pressable
+          onPress={() => setIsFormOpen(!isFormOpen)}
+          disabled={isFull}
+          style={({ pressed }) => [
+            styles.signUpBtn,
+            isFull && styles.signUpBtnDisabled,
+            pressed && !isFull && styles.signUpBtnPressed,
+          ]}
+        >
+          <Text style={[styles.signUpBtnText, isFull && styles.signUpBtnTextDisabled]}>
+            {isFull ? 'FULLY BOOKED' : 'SIGN UP'}
+          </Text>
+        </Pressable>
+
+        {/* Registration Form */}
+        {isFormOpen && (
+          <View style={styles.registrationForm}>
+            {showSuccess ? (
+              <View style={styles.successContainer}>
+                <Text style={styles.successCheckmark}>✓</Text>
+                <Text style={styles.successText}>You are signed up!</Text>
+              </View>
+            ) : (
+              <>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Number of people"
+                  placeholderTextColor={Colors.textSecondary}
+                  keyboardType="number-pad"
+                  value={numberOfPeople}
+                  onChangeText={setNumberOfPeople}
+                  editable={!isLoading}
+                />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Camp name"
+                  placeholderTextColor={Colors.textSecondary}
+                  value={regCampName}
+                  onChangeText={setRegCampName}
+                  editable={!isLoading}
+                />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Camp pin"
+                  placeholderTextColor={Colors.textSecondary}
+                  value={campPin}
+                  onChangeText={setCampPin}
+                  editable={!isLoading}
+                  secureTextEntry
+                />
+                <Pressable
+                  onPress={handleSignUp}
+                  disabled={isLoading || !numberOfPeople || !regCampName || !campPin}
+                  style={({ pressed }) => [
+                    styles.submitBtn,
+                    (isLoading || !numberOfPeople || !regCampName || !campPin) && styles.submitBtnDisabled,
+                    pressed && styles.submitBtnPressed,
+                  ]}
+                >
+                  {isLoading ? (
+                    <ActivityIndicator color={Colors.white} />
+                  ) : (
+                    <Text style={styles.submitBtnText}>REGISTER</Text>
+                  )}
+                </Pressable>
+              </>
+            )}
+          </View>
+        )}
       </View>
     </View>
   );
@@ -231,6 +346,89 @@ const styles = StyleSheet.create({
   capacityText: {
     fontFamily: 'Oswald_400Regular',
     fontSize: 18,
+    color: Colors.text,
+    letterSpacing: 0.3,
+  },
+
+  // ── Sign Up ──
+  signUpBtn: {
+    marginTop: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    backgroundColor: Colors.accent,
+    alignItems: 'center',
+  },
+  signUpBtnDisabled: {
+    backgroundColor: Colors.border,
+  },
+  signUpBtnPressed: {
+    opacity: 0.8,
+  },
+  signUpBtnText: {
+    fontFamily: 'Barlow_700Bold',
+    fontSize: 14,
+    color: Colors.white,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  signUpBtnTextDisabled: {
+    opacity: 0.6,
+  },
+
+  // ── Registration Form ──
+  registrationForm: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopColor: Colors.accent,
+    borderTopWidth: 1,
+    borderStyle: 'dotted',
+    gap: 12,
+  },
+  input: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 6,
+    fontFamily: 'Oswald_400Regular',
+    fontSize: 14,
+    color: Colors.text,
+  },
+  submitBtn: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    backgroundColor: Colors.accent,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  submitBtnDisabled: {
+    backgroundColor: Colors.border,
+  },
+  submitBtnPressed: {
+    opacity: 0.8,
+  },
+  submitBtnText: {
+    fontFamily: 'Barlow_700Bold',
+    fontSize: 14,
+    color: Colors.white,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  successContainer: {
+    alignItems: 'center',
+    paddingVertical: 24,
+    gap: 8,
+  },
+  successCheckmark: {
+    fontSize: 48,
+    color: Colors.accent,
+    fontWeight: 'bold',
+  },
+  successText: {
+    fontFamily: 'Barlow_700Bold',
+    fontSize: 16,
     color: Colors.text,
     letterSpacing: 0.3,
   },
