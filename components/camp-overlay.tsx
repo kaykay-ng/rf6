@@ -1,5 +1,12 @@
 import { Image } from 'react-native';
-import Animated from 'react-native-reanimated';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withRepeat,
+  withTiming,
+  Easing,
+  useEffect
+} from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
 
 type Props = {
@@ -11,21 +18,40 @@ type Props = {
 
 export function CampOverlay({ imageUri, x, y, scale }: Props) {
   const size = 28 * scale;
+  const rotation = useSharedValue(0);
+
+  useEffect(() => {
+    rotation.value = withRepeat(
+      withTiming(6, {
+        duration: 2000,
+        easing: Easing.inOut(Easing.sine),
+      }),
+      -1,
+      true
+    );
+  }, []);
+
+  const animStyle = useAnimatedStyle(() => ({
+    transform: [{ rotateZ: `${rotation.value}deg` }],
+  }));
 
   if (imageUri) {
     return (
       <Animated.View
-        style={{
-          position: 'absolute',
-          left: x,
-          top: y,
-          width: size,
-          height: size,
-          overflow: 'hidden',
-          borderRadius: 2,
-          borderWidth: 0.5,
-          borderColor: 'rgba(0,0,0,0.15)',
-        }}
+        style={[
+          {
+            position: 'absolute',
+            left: x,
+            top: y,
+            width: size,
+            height: size,
+            overflow: 'hidden',
+            borderRadius: 2,
+            borderWidth: 0.5,
+            borderColor: 'rgba(0,0,0,0.15)',
+          },
+          animStyle,
+        ]}
       >
         <Image
           source={{ uri: imageUri }}
@@ -38,13 +64,16 @@ export function CampOverlay({ imageUri, x, y, scale }: Props) {
 
   return (
     <Animated.View
-      style={{
-        position: 'absolute',
-        left: x,
-        top: y,
-        width: size,
-        height: size * 0.6,
-      }}
+      style={[
+        {
+          position: 'absolute',
+          left: x,
+          top: y,
+          width: size,
+          height: size * 0.6,
+        },
+        animStyle,
+      ]}
     >
       <Svg width={size} height={size * 0.6} viewBox="0 0 24 15">
         <Path d="M2 1 L22 1 L22 14 L2 14 Z" fill="#E8252A" />
