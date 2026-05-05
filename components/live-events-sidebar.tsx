@@ -1,8 +1,9 @@
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Text } from '@/components/ui/text';
 import { Colors } from '@/constants/theme';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { isLiveEvent, type CampEvent } from './event-card';
+import { Icon } from './icon';
 
 // ── Color palette for events ─────────────────────────────────────────────────
 
@@ -129,41 +130,88 @@ function TimelineRow({ event, color, hostCampName, isLive, isLast, onPress }: {
   isLast: boolean;
   onPress?: () => void;
 }) {
+  // Date formatting
+  const dateObj = new Date(event.date);
+  const dateStr = dateObj.toLocaleDateString('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+  });
+
   // Time display in 24-hour format: "18:00"
   const timeStr = event.time;
 
-  const zone = event.host_camp_id.split('-')[0];
+  // Calculate spots left (mock: 75% capacity filled)
+  const capacity = event.max_capacity || 40;
+  const progressPercent = 75;
+  const spotsUsed = Math.round((progressPercent / 100) * capacity);
+  const spotsLeft = capacity - spotsUsed;
 
   return (
-    <Pressable style={({ pressed }) => [styles.row, { backgroundColor: color + '14' }, pressed && { opacity: 0.8 }]} onPress={onPress}>
-      {/* Time column */}
-      <View style={styles.timeCol}>
-        <Text style={styles.timeText}>{timeStr}</Text>
+    <Pressable style={({ pressed }) => [styles.row, pressed && styles.rowPressed]} onPress={onPress}>
+      {/* Ribbon - spots left */}
+      {event.max_capacity != null && (
+        <View style={[styles.ribbon, { backgroundColor: color }]}>
+          <Text style={styles.ribbonText}>{spotsLeft}/{capacity}</Text>
+          <Text style={styles.ribbonDescription}>spots left</Text>
+        </View>
+      )}
+
+      {/* Event info */}
+      <View style={styles.content}>
+        <Text style={styles.eventName}>{event.name}</Text>
+        {!!hostCampName && (
+          <Text style={styles.campNameSmall}>{hostCampName} · {event.host_camp_id}</Text>
+        )}
+
+        {/* Details columns - Date, Time, Location, Weather */}
+        <View style={styles.detailsGrid}>
+          {/* Date detail */}
+          <View style={styles.detailItem}>
+            <Icon name="date" size={18} color={Colors.text} />
+            <View style={styles.detailContent}>
+              <Text style={styles.detailLabel}>Date</Text>
+              <Text style={styles.detailValue}>{dateStr}</Text>
+            </View>
+          </View>
+
+          {/* Time detail */}
+          <View style={styles.detailItem}>
+            <Icon name="time" size={18} color={Colors.text} />
+            <View style={styles.detailContent}>
+              <Text style={styles.detailLabel}>Time</Text>
+              <Text style={styles.detailValue}>{timeStr}</Text>
+            </View>
+          </View>
+
+          {/* Location detail */}
+          <View style={styles.detailItem}>
+            <Icon name="location" size={18} color={Colors.text} />
+            <View style={styles.detailContent}>
+              <Text style={styles.detailLabel}>Location</Text>
+              <Text style={styles.detailValue} numberOfLines={1}>
+                {event.location_type === 'our_camp' ? 'Our Camp' : (event.location_name || 'TBD')}
+              </Text>
+            </View>
+          </View>
+
+          {/* Weather detail */}
+          <View style={styles.detailItem}>
+            <Icon name="weather" size={18} color={Colors.text} />
+            <View style={styles.detailContent}>
+              <Text style={styles.detailLabel}>Weather</Text>
+              <Text style={styles.detailValue}>Sunny</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* NOW badge */}
         {isLive && (
           <View style={[styles.nowBadge, { backgroundColor: color }]}>
             <Text style={styles.nowBadgeText}>NOW</Text>
           </View>
         )}
       </View>
-
-      {/* Vertical divider */}
-      <View style={[styles.rowDivider, { backgroundColor: color }]} />
-
-      {/* Event info column */}
-      <View style={styles.infoCol}>
-        <Text style={styles.eventName}>{event.name}</Text>
-        {!!hostCampName && (
-          <Text style={styles.campName}>{hostCampName} · Zone {zone}</Text>
-        )}
-      </View>
-
-      {/* Spots column */}
-      {event.max_capacity != null && (
-        <View style={styles.spotsCol}>
-          <Text style={styles.spotsNum}>{event.max_capacity}</Text>
-          <Text style={styles.spotsLabel}>spots</Text>
-        </View>
-      )}
     </Pressable>
   );
 }
@@ -228,100 +276,126 @@ const styles = StyleSheet.create({
   sectionText: {
     fontFamily: 'Oswald_400Regular',
     fontSize: 18,
-    letterSpacing: 1.0,
+    letterSpacing: 0.5,
     color: Colors.textSecondary,
   },
 
   // ── Timeline grid ──
-  timelineGrid: { gap: 0 },
+  timelineGrid: { gap: 12 },
   row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 14,
-    paddingLeft:16,
-    paddingRight: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-    gap: 0,
+    position: 'relative',
+    backgroundColor: Colors.white,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    marginBottom: 4,
+    shadowColor: '#000000',
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
+  rowPressed: {
+    opacity: 0.85,
   },
 
-  // ── Time column ──
-  timeCol: {
-    width: 90,
-    paddingRight: 16,
-    alignItems: 'flex-start',
+  // ── Ribbon ──
+  ribbon: {
+    position: 'absolute',
+    top: 0,
+    right: 16,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderBottomLeftRadius: 6,
+    borderBottomRightRadius: 6,
+    shadowColor: '#000000',
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 1 },
+    elevation: 1,
   },
-  timeText: {
-    fontFamily: 'Oswald_700Bold',
-    fontSize: 22,
-    letterSpacing: 0.5,
-    color: Colors.text,
-    lineHeight: 26,
-  },
-  dateText: {
-    fontFamily: 'Oswald_400Regular',
-    fontSize: 13,
-    color: Colors.textSecondary,
+  ribbonText: {
+    fontFamily: 'Barlow_700Bold',
+    fontSize: 24,
+    color: Colors.white,
+    fontWeight: '700',
     letterSpacing: 0.3,
-    marginTop: 2,
+    textAlign: 'center',
   },
+  ribbonDescription: {
+    fontFamily: 'Oswald_400Regular',
+    fontSize: 12,
+    color: Colors.white,
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
+    textAlign: 'center',
+  },
+
+  // ── Content ──
+  content: {
+    paddingRight: 50,
+  },
+  eventName: {
+    fontFamily: 'Barlow_700Bold',
+    fontSize: 36,
+    color: Colors.text,
+    marginBottom: 6,
+  },
+  campNameSmall: {
+    fontFamily: 'Oswald_400Regular',
+    fontSize: 14,
+    color: Colors.textSecondary,
+    textTransform: 'uppercase',
+    marginBottom: 4,
+  },
+  // ── Details grid (Time, Location, Weather) ──
+  detailsGrid: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+  },
+  detailItem: {
+    flex: 1,
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: 6,
+  },
+  detailContent: {
+    alignItems: 'center',
+  },
+  detailLabel: {
+    fontFamily: 'Barlow_700Bold',
+    fontSize: 12,
+    color: Colors.textSecondary,
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
+    marginBottom: 2,
+    textAlign: 'center',
+  },
+  detailValue: {
+    fontFamily: 'Barlow_700Bold',
+    fontSize: 16,
+    color: Colors.text,
+    textAlign: 'center',
+  },
+
   nowBadge: {
-    borderRadius: 4,
-    paddingHorizontal: 7,
-    paddingVertical: 3,
     marginTop: 8,
+    borderRadius: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    alignSelf: 'flex-start',
   },
   nowBadgeText: {
     fontFamily: 'Oswald_700Bold',
     fontSize: 11,
     letterSpacing: 1.5,
     color: Colors.white,
-  },
-
-  // ── Divider ──
-  rowDivider: {
-    width: 3,
-    borderRadius: 2,
-    alignSelf: 'stretch',
-    marginRight: 16,
-    minHeight: 60,
-  },
-
-  // ── Info column ──
-  infoCol: { flex: 1, justifyContent: 'center' },
-  eventName: {
-    fontFamily: 'Oswald_700Bold',
-    fontSize: 20,
-    letterSpacing: 0.5,
-    color: Colors.text,
-    lineHeight: 26,
-  },
-  campName: {
-    fontFamily: 'Oswald_400Regular',
-    fontSize: 14,
-    color: Colors.textSecondary,
-    letterSpacing: 0.4,
-    marginTop: 4,
-  },
-
-  // ── Spots column ──
-  spotsCol: {
-    alignItems: 'flex-end',
-    paddingLeft: 16,
-    minWidth: 50,
-  },
-  spotsNum: {
-    fontFamily: 'Oswald_700Bold',
-    fontSize: 22,
-    color: Colors.text,
-    lineHeight: 26,
-  },
-  spotsLabel: {
-    fontFamily: 'Oswald_400Regular',
-    fontSize: 12,
-    color: Colors.textSecondary,
-    letterSpacing: 0.3,
-    marginTop: 2,
   },
 
   emptyText: {

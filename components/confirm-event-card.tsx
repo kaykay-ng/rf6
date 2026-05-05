@@ -46,14 +46,14 @@ export function ConfirmEventCard({
         <Text style={styles.ribbonDescription}>spots left</Text>
       </View>
 
-      {/* Camp name header */}
-      <View style={styles.header}>
-        <Text style={styles.campName}>{campName} ⋅ {campAddress}</Text>
-      </View>
-
       {/* Orange title section */}
       <View style={styles.titleSection}>
         <Text style={styles.title}>{eventName}</Text>
+      </View>
+
+      {/* Camp name header */}
+      <View style={styles.header}>
+        <Text style={styles.campName}>{campName} ⋅ {campAddress}</Text>
       </View>
 
       {/* Content section */}
@@ -161,7 +161,6 @@ const styles = StyleSheet.create({
 
   header: {
     paddingHorizontal: 16,
-    paddingTop: 14,
   },
   campName: {
     fontFamily: 'Oswald_400Regular',
@@ -175,9 +174,6 @@ const styles = StyleSheet.create({
   titleSection: {
     paddingHorizontal: 12,
     paddingVertical: 12,
-    borderBottomColor: Colors.accent,
-    borderBottomWidth: 1,
-    borderStyle: 'dotted',
   },
   title: {
     fontFamily: 'Barlow_700Bold',
@@ -188,7 +184,7 @@ const styles = StyleSheet.create({
 
   content: {
     paddingHorizontal: 16,
-    paddingVertical: 18,
+    paddingVertical: 12,
     gap: 16,
   },
 
@@ -203,6 +199,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     paddingTop: 18,
     gap: 16,
+    borderTopColor: Colors.accent,
+    borderTopWidth: 1,
+    borderStyle: 'dotted',
   },
   detailItem: {
     flex: 1,
