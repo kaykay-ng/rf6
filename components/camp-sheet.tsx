@@ -4,6 +4,7 @@ import { Colors } from '@/constants/theme';
 import { Image } from 'expo-image';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { type CampEvent, isLiveEvent } from './event-card';
+import { ConfirmEventCard } from './confirm-event-card';
 
 // Re-export CampEvent for consumers of camp-sheet
 export type { CampEvent } from './event-card';
@@ -81,38 +82,23 @@ export function CampSheet({ camp, events, paddingBottom, onDismiss }: Props) {
                   return liveA !== liveB ? liveA - liveB : `${a.date}T${a.time}`.localeCompare(`${b.date}T${b.time}`);
                 })
                 .map((event) => (
-                  <EventBoldCard key={event.id} event={event} />
+                  <ConfirmEventCard
+                    key={event.id}
+                    campName={camp.name}
+                    campAddress={camp.address}
+                    eventName={event.name}
+                    description={event.description}
+                    date={event.date}
+                    time={event.time}
+                    location={event.location_type === 'our_camp' ? 'Our Camp' : (event.location_name || 'TBD')}
+                    maxCapacity={event.max_capacity}
+                  />
                 ))}
             </View>
           )}
 
         </ScrollView>
 
-      </View>
-    </View>
-  );
-}
-
-// ── EventBoldCard ─────────────────────────────────────────────────────────────
-function EventBoldCard({ event }: { event: CampEvent }) {
-  const isLive = isLiveEvent(event);
-  const dateTimeStr = event.date && event.time ? `${event.date} · ${event.time}` : event.location_type;
-
-  return (
-    <View style={styles.eventCard}>
-      <View style={styles.eventBanner}>
-        {isLive && (
-          <View style={styles.eventNowPill}>
-            <Text style={styles.eventNowText}>NOW</Text>
-          </View>
-        )}
-        <Text style={styles.eventCardName}>{event.name}</Text>
-      </View>
-      <View style={styles.eventCardBody}>
-        <Text style={styles.eventCardMeta}>{dateTimeStr}</Text>
-        {!!event.description && (
-          <Text style={styles.eventCardDesc} numberOfLines={2}>{event.description}</Text>
-        )}
       </View>
     </View>
   );

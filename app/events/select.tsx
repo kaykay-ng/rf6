@@ -42,7 +42,9 @@ export default function SelectCampScreen() {
   }
 
   function handleSelectCamp(camp: Camp) {
+    console.log('Selected camp:', camp);
     dispatch({ type: 'SET_FIELD', field: 'campId', value: camp.id });
+    dispatch({ type: 'SET_FIELD', field: 'campName', value: camp.name });
     dispatch({ type: 'SET_FIELD', field: 'campAddress', value: camp.address });
     router.push('/events/pin');
   }

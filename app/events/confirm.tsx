@@ -14,6 +14,8 @@ export default function ConfirmEventScreen() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
+  console.log('Confirm screen data:', { campName: data.campName, campAddress: data.campAddress });
+
   const hasErrors = !data.campAddress || data.dates.length === 0 || !data.name || !data.time;
   const canSubmit = !loading && !success && !hasErrors;
 
@@ -68,7 +70,8 @@ export default function ConfirmEventScreen() {
 
         {/* Event card */}
         <ConfirmEventCard
-          campName={data.campAddress}
+          campName={data.campName}
+          campAddress={data.campAddress}
           eventName={data.name}
           description={data.description}
           date={data.dates[0] || ''}

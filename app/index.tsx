@@ -245,6 +245,7 @@ export default function MapScreen() {
           <View style={styles.sidebarWrapper}>
             <LiveEventsSidebar
               events={todaysEvents}
+              allEvents={allEvents}
               getEventColor={getEventColor}
               getHostCampName={getHostCampName}
               onEventPress={(event) => {

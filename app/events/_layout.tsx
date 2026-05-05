@@ -7,6 +7,7 @@ import { createContext, ReactNode, useContext, useReducer } from 'react';
 
 export type EventDraft = {
   campId: string;         // camp.id (UUID)
+  campName: string;       // camp.name (e.g. 'Blue Flamingos')
   campAddress: string;    // camp.address (e.g. 'C5-3')
   name: string;
   description: string;
@@ -24,6 +25,7 @@ type Action =
 
 const initialState: EventDraft = {
   campId: '',
+  campName: '',
   campAddress: '',
   name: '',
   description: '',

@@ -20,6 +20,7 @@ export function eventColorForIndex(index: number): string {
 
 type Props = {
   events: CampEvent[];
+  allEvents: CampEvent[];
   getEventColor: (event: CampEvent) => string;
   getHostCampName: (event: CampEvent) => string | undefined;
   onEventPress?: (event: CampEvent) => void;
@@ -27,26 +28,34 @@ type Props = {
 
 // ── Sidebar ───────────────────────────────────────────────────────────────────
 
-export function LiveEventsSidebar({ events, getEventColor, getHostCampName, onEventPress }: Props) {
+export function LiveEventsSidebar({ events, allEvents, getEventColor, getHostCampName, onEventPress }: Props) {
   const insets = useSafeAreaInsets();
 
-  const live = events.filter(isLiveEvent);
-  const upcoming = events.filter((e) => !isLiveEvent(e));
-
   const today = new Date();
+  const todayStr = today.toISOString().split('T')[0];
   const dayName = today.toLocaleDateString('en-GB', { weekday: 'long' });
   const dateStr = today.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+
+  // If no events today, show upcoming events
+  const hasEventsToday = events.length > 0;
+  const displayEvents = hasEventsToday ? events : allEvents.filter((e) => e.date > todayStr);
+  const displayTitle = hasEventsToday ? "WHAT'S ON\nTODAY" : 'UPCOMING\nEVENTS';
+
+  const live = displayEvents.filter(isLiveEvent);
+  const upcoming = displayEvents.filter((e) => !isLiveEvent(e));
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 16 }]}>
 
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>WHAT'S ON{'\n'}TODAY</Text>
-        <View style={styles.headerDate}>
-          <Text style={styles.dayName}>{dayName}</Text>
-          <Text style={styles.dateNum}>{dateStr}</Text>
-        </View>
+        <Text style={styles.title}>{displayTitle}</Text>
+        {hasEventsToday && (
+          <View style={styles.headerDate}>
+            <Text style={styles.dayName}>{dayName}</Text>
+            <Text style={styles.dateNum}>{dateStr}</Text>
+          </View>
+        )}
       </View>
 
       <View style={styles.divider} />
@@ -66,8 +75,10 @@ export function LiveEventsSidebar({ events, getEventColor, getHostCampName, onEv
           <TimelineSection label="Coming Up" events={upcoming} getEventColor={getEventColor} getHostCampName={getHostCampName} onEventPress={onEventPress} />
         )}
 
-        {events.length === 0 && (
-          <Text style={styles.emptyText}>No events scheduled for today.</Text>
+        {displayEvents.length === 0 && (
+          <Text style={styles.emptyText}>
+            {hasEventsToday ? 'No events scheduled for today.' : 'No upcoming events scheduled.'}
+          </Text>
         )}
       </ScrollView>
     </View>
@@ -118,12 +129,8 @@ function TimelineRow({ event, color, hostCampName, isLive, isLast, onPress }: {
   isLast: boolean;
   onPress?: () => void;
 }) {
-  // Format time: "18:00" → "6 PM"
-  const [hh, mm] = event.time.split(':');
-  const h = parseInt(hh, 10);
-  const ampm = h >= 12 ? 'PM' : 'AM';
-  const h12 = h % 12 || 12;
-  const timeStr = `${h12}:${mm} ${ampm}`;
+  // Time display in 24-hour format: "18:00"
+  const timeStr = event.time;
 
   const zone = event.host_camp_id.split('-')[0];
 

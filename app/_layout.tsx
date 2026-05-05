@@ -53,6 +53,7 @@ export default function RootLayout() {
       <Stack.Screen name="login"   options={{ title: 'LOG IN', headerBackTitle: '' }} />
       <Stack.Screen name="onboarding" options={{ headerShown: false }} />
       <Stack.Screen name="events" options={{ title: 'BOND', headerLeft: () => <HamburgerButton /> }} />
+      <Stack.Screen name="event-preview" options={{ title: 'EVENT PREVIEW (DEV)', headerBackTitle: '' }} />
     </Stack>
     </SessionProvider>
     </SafeAreaProvider>
