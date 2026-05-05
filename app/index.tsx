@@ -1,25 +1,26 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
-import { View, StyleSheet, Platform, Pressable, Alert, useWindowDimensions } from 'react-native';
+import { CampSheet, type CampEvent } from '@/components/camp-sheet';
+import { CommonGroundMap, type Camp } from '@/components/common-ground-map';
+import { isLiveEvent } from '@/components/event-card';
+import { LiveEventsSidebar, eventColorForIndex } from '@/components/live-events-sidebar';
+import { Text } from '@/components/ui/text';
+import { ZoneHoverCard } from '@/components/zone-hover-card';
+import { Colors } from '@/constants/theme';
+import { useSession } from '@/context/session';
+import { ZONES } from '@/data/grid';
+import { supabase } from '@/lib/supabase';
 import { Image } from 'expo-image';
 import { Stack, router, useFocusEffect } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Alert, Platform, Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
 import Animated, {
-  useSharedValue, useAnimatedStyle, withSpring, withTiming,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring, withTiming,
 } from 'react-native-reanimated';
-import { CommonGroundMap, type Camp } from '@/components/common-ground-map';
-import { CampSheet, type CampEvent } from '@/components/camp-sheet';
-import { MOCK_EVENTS } from '@/data/mock-events';
-import { ZONES } from '@/data/grid';
-import { Colors } from '@/constants/theme';
-import { Text } from '@/components/ui/text';
-import { supabase } from '@/lib/supabase';
-import { useSession } from '@/context/session';
-import { LiveEventsSidebar, eventColorForIndex } from '@/components/live-events-sidebar';
-import { ZoneHoverCard } from '@/components/zone-hover-card';
-import { isLiveEvent } from '@/components/event-card';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const SHEET_HIDDEN   = 540;
-const SHEET_HEIGHT   = 520;
+const SHEET_HEIGHT   = 624;
 const DRAWER_WIDTH   = 280;
 const WIDE_BREAKPOINT = 1024;
 
