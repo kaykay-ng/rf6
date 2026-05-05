@@ -283,6 +283,7 @@ export default function MapScreen() {
                   allCamps={camps}
                   paddingBottom={insets.bottom + 16}
                   onDismiss={dismissSheet}
+                  onRegistrationSuccess={fetchEvents}
                 />
               )}
             </Animated.View>
@@ -314,6 +315,7 @@ export default function MapScreen() {
                 allCamps={camps}
                 paddingBottom={insets.bottom + 16}
                 onDismiss={dismissSheet}
+                onRegistrationSuccess={fetchEvents}
               />
             )}
           </Animated.View>

@@ -17,9 +17,10 @@ type Props = {
   allCamps?: Camp[];
   paddingBottom: number;
   onDismiss: () => void;
+  onRegistrationSuccess?: () => void;
 };
 
-export function CampSheet({ camp, events, allCamps = [], paddingBottom, onDismiss }: Props) {
+export function CampSheet({ camp, events, allCamps = [], paddingBottom, onDismiss, onRegistrationSuccess }: Props) {
   return (
     <View style={styles.shadow}>
       <View style={styles.clip}>
@@ -96,6 +97,7 @@ export function CampSheet({ camp, events, allCamps = [], paddingBottom, onDismis
                     maxCapacity={event.max_capacity}
                     registeredCount={event.registered_count}
                     camps={allCamps}
+                    onRegistrationSuccess={onRegistrationSuccess}
                   />
                 ))}
             </View>

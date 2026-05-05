@@ -18,6 +18,7 @@ interface ConfirmEventCardProps {
   maxCapacity?: number;
   registeredCount?: number;
   camps?: Camp[];
+  onRegistrationSuccess?: () => void;
 }
 
 export function ConfirmEventCard({
@@ -32,6 +33,7 @@ export function ConfirmEventCard({
   maxCapacity,
   registeredCount,
   camps = [],
+  onRegistrationSuccess,
 }: ConfirmEventCardProps) {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [numberOfPeople, setNumberOfPeople] = useState('');
@@ -95,17 +97,24 @@ export function ConfirmEventCard({
 
       // Update event's registered_count
       const newRegisteredCount = registered + parseInt(numberOfPeople);
-      const { error: updateError } = await supabase
+      console.log('Updating event:', { eventId, newRegisteredCount, registered, numberOfPeople });
+
+      const { error: updateError, data: updateData } = await supabase
         .from('events')
         .update({ registered_count: newRegisteredCount })
         .eq('id', eventId);
 
+      console.log('Update result:', { error: updateError, data: updateData });
       if (updateError) throw updateError;
 
       setShowSuccess(true);
       setNumberOfPeople('');
       setRegCampName('');
       setCampPin('');
+
+      // Call the success callback to refetch events
+      onRegistrationSuccess?.();
+
       setTimeout(() => {
         setIsFormOpen(false);
         setShowSuccess(false);
