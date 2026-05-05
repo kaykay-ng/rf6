@@ -104,7 +104,7 @@ export default function MapScreen() {
   const fetchEvents = useCallback(async () => {
     const { data, error } = await supabase
       .from('events')
-      .select('id, name, date, time, location_type, location_name, host_camp_id, description, max_capacity');
+      .select('id, name, date, time, location_type, location_name, host_camp_id, description, max_capacity, registered_count');
 
     if (error) {
       console.error('Failed to load events:', error);
@@ -121,6 +121,7 @@ export default function MapScreen() {
       host_camp_id: r.host_camp_id,
       description: r.description,
       max_capacity: r.max_capacity,
+      registered_count: r.registered_count || 0,
     })));
   }, []);
 
