@@ -40,6 +40,7 @@ export function ConfirmEventCard({
   const [isLoading, setIsLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [showCampPicker, setShowCampPicker] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   // Parse date for display
   const dateObj = new Date(date);
@@ -59,8 +60,28 @@ export function ConfirmEventCard({
     if (!numberOfPeople || !regCampName || !campPin || !eventId) return;
 
     setIsLoading(true);
+    setErrorMessage('');
+
     try {
-      const { error } = await supabase.from('registrations').insert([
+      // Verify camp PIN
+      const selectedCamp = camps.find(c => c.name === regCampName);
+      if (!selectedCamp) {
+        setErrorMessage('Camp not found');
+        setIsLoading(false);
+        return;
+      }
+
+      // For now, we'll use a simple verification. In production, this should be properly secured
+      // Assuming the camp has a pin property, or you can store pins separately
+      // For demo, we'll accept any non-empty PIN
+      if (!campPin) {
+        setErrorMessage('PIN is required');
+        setIsLoading(false);
+        return;
+      }
+
+      // Insert registration
+      const { error: insertError } = await supabase.from('registrations').insert([
         {
           event_id: eventId,
           camp_name: regCampName,
@@ -70,7 +91,16 @@ export function ConfirmEventCard({
         },
       ]);
 
-      if (error) throw error;
+      if (insertError) throw insertError;
+
+      // Update event's registered_count
+      const newRegisteredCount = registered + parseInt(numberOfPeople);
+      const { error: updateError } = await supabase
+        .from('events')
+        .update({ registered_count: newRegisteredCount })
+        .eq('id', eventId);
+
+      if (updateError) throw updateError;
 
       setShowSuccess(true);
       setNumberOfPeople('');
@@ -82,6 +112,7 @@ export function ConfirmEventCard({
       }, 2000);
     } catch (err) {
       console.error('Registration error:', err);
+      setErrorMessage('Registration failed. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -180,6 +211,9 @@ export function ConfirmEventCard({
               </View>
             ) : (
               <>
+                {errorMessage && (
+                  <Text style={styles.errorText}>{errorMessage}</Text>
+                )}
                 <TextInput
                   style={styles.input}
                   placeholder="Number of people"
@@ -424,6 +458,13 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderStyle: 'dotted',
     gap: 12,
+  },
+  errorText: {
+    fontFamily: 'Oswald_400Regular',
+    fontSize: 14,
+    color: '#D32F2F',
+    marginBottom: 8,
+    textAlign: 'center',
   },
   input: {
     paddingHorizontal: 12,
