@@ -1,9 +1,6 @@
 import { Colors } from '@/constants/theme';
 import {
   CAMP_BS,
-  CAMP_COLS,
-  CAMP_CS,
-  CAMP_ROWS,
   type CampZone,
   parseAddress,
   ZONE_H,

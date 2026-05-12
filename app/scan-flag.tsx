@@ -2,9 +2,10 @@ import { Text } from '@/components/ui/text';
 import { Colors } from '@/constants/theme';
 import { supabase } from '@/lib/supabase';
 import * as FileSystem from 'expo-file-system/legacy';
+import * as DocumentPicker from 'expo-document-picker';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -12,6 +13,7 @@ const DocumentScanner = Platform.OS === 'ios' ? require('react-native-document-s
 
 export default function ScanFlagScreen() {
   const insets = useSafeAreaInsets();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [scannedUri, setScannedUri] = useState('');
   const [loading, setLoading] = useState(false);
@@ -21,10 +23,17 @@ export default function ScanFlagScreen() {
   async function uploadFlag(localUri: string): Promise<string> {
     const filename = `scan-${Date.now()}.jpg`;
 
-    // Read file as base64 string
-    const base64String = await FileSystem.readAsStringAsync(localUri, {
-      encoding: 'base64',
-    });
+    let base64String: string;
+
+    if (localUri.startsWith('data:')) {
+      // Web upload: extract base64 from data URL
+      base64String = localUri.split(',')[1];
+    } else {
+      // Mobile upload: read file as base64
+      base64String = await FileSystem.readAsStringAsync(localUri, {
+        encoding: 'base64',
+      });
+    }
 
     // Decode base64 to Uint8Array
     const binaryString = atob(base64String);
@@ -61,6 +70,39 @@ export default function ScanFlagScreen() {
       }
     } catch (err) {
       Alert.alert('Scanner error', 'Could not scan document. Please try again.');
+    }
+  }
+
+  async function handlePickFile() {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ['image/*'],
+      });
+
+      if (!result.canceled && result.assets.length > 0) {
+        setScannedUri(result.assets[0].uri);
+        setError('');
+      }
+    } catch (err) {
+      Alert.alert('Error', 'Could not pick file. Please try again.');
+    }
+  }
+
+  function handleWebFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setScannedUri(event.target?.result as string);
+        setError('');
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+
+  function triggerWebFileInput() {
+    if (Platform.OS === 'web' && fileInputRef.current) {
+      fileInputRef.current.click();
     }
   }
 
@@ -132,9 +174,35 @@ export default function ScanFlagScreen() {
               </View>
             </>
           ) : (
-            <Pressable style={styles.scanBtn} onPress={handleScan}>
-              <Text style={styles.scanBtnText}>SCAN WITH CAMERA</Text>
-            </Pressable>
+            <>
+              {Platform.OS === 'web' ? (
+                <>
+                  <input
+                    ref={fileInputRef as any}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleWebFileUpload}
+                    style={{ display: 'none' }}
+                  />
+                  <Pressable style={styles.scanBtn} onPress={triggerWebFileInput}>
+                    <Text style={styles.scanBtnText}>UPLOAD FLAG IMAGE</Text>
+                  </Pressable>
+                </>
+              ) : Platform.OS === 'ios' && DocumentScanner ? (
+                <Pressable style={styles.scanBtn} onPress={handleScan}>
+                  <Text style={styles.scanBtnText}>SCAN WITH CAMERA</Text>
+                </Pressable>
+              ) : (
+                <View style={styles.buttonRow}>
+                  <Pressable style={[styles.scanBtn, { flex: 1 }]} onPress={handleScan}>
+                    <Text style={styles.scanBtnText}>SCAN WITH CAMERA</Text>
+                  </Pressable>
+                  <Pressable style={[styles.scanBtn, { flex: 1, marginLeft: 12 }]} onPress={handlePickFile}>
+                    <Text style={styles.scanBtnText}>UPLOAD IMAGE</Text>
+                  </Pressable>
+                </View>
+              )}
+            </>
           )}
         </View>
       )}

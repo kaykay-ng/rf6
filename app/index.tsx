@@ -365,17 +365,13 @@ export default function MapScreen() {
           </>
         ) : (
           <>
-            {Platform.OS !== 'web' && (
-              <DrawerItem label="Register your camp" onPress={() => navigate('/welcome')} />
-            )}
+            <DrawerItem label="Register your camp" onPress={() => navigate('/welcome')} />
             <DrawerItem label="Log in" onPress={() => navigate('/login')} />
           </>
         )}
 
         <View style={styles.drawerDivider} />
         <DrawerItem label="Add an event"  onPress={() => navigate('/events/select')} />
-        <View style={styles.drawerDivider} />
-        <DrawerItem label="Scan flag" onPress={() => navigate('/scan-flag')} />
       </Animated.View>
     </View>
   );
